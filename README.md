@@ -17,7 +17,7 @@ A Desktop Application that Implemented Zettelkasten to Help You Build Your Secon
     2. Link exists notes.
     3. Produce article.
 
-2. Qiuck note-taking screen to collect notes.
+2. Quick note-taking screen to collect notes.
 3. Review screen to review recent notes.
 4. Someday screen to show notes that not reviewed.
 5. Grid screen to show all notes into different columns by their networks.
