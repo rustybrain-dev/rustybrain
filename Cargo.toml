@@ -6,9 +6,9 @@ edition = "2021"
 [workspace]
 
 members = [
-   "rustybrain-ui",
+   "rustybrain-gtk",
 ]
 
 [dependencies]
 
-rustybrain-ui = {path = "rustybrain-ui"}
+rustybrain-gtk = {path = "rustybrain-gtk"}

@@ -1,5 +1,5 @@
 [package]
-name = "rustybrain-ui"
+name = "rustybrain-gtk"
 version = "0.1.0"
 edition = "2021"
 

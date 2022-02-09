@@ -1,4 +1,4 @@
-use rustybrain_ui::run;
+use rustybrain_gtk::run;
 
 
 fn main() {
