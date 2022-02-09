@@ -10,5 +10,6 @@ members = [
 ]
 
 [dependencies]
+color-eyre = "0.5.11"
 
 rustybrain-gtk = {path = "rustybrain-gtk"}

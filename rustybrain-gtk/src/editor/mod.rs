@@ -1,5 +1,6 @@
 use gtk::prelude::*;
 use gtk::TextTagTable;
+use relm::connect;
 use relm::{Update, Widget};
 use relm_derive::Msg;
 
@@ -13,6 +14,7 @@ pub enum Msg {
 pub struct Editor {
     model: Model,
     box_: gtk::Box,
+    buffer: gtk::TextBuffer,
 }
 
 impl Update for Editor {
@@ -44,9 +46,19 @@ impl Widget for Editor {
         let box_ = gtk::Box::new(gtk::Orientation::Vertical, 10);
         let buffer = gtk::TextBuffer::new::<TextTagTable>(None);
         buffer.set_text("Hello, RustyBrain!");
+        connect!(
+            relm,
+            buffer,
+            connect_changed(_),
+            return (Some(Msg::Changed), ())
+        );
         let view = gtk::TextView::with_buffer(&buffer);
         view.set_size_request(800, 600);
         box_.add(&view);
-        Editor { model, box_ }
+        Editor {
+            model,
+            box_,
+            buffer,
+        }
     }
 }
