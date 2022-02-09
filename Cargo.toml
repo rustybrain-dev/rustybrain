@@ -1,5 +1,14 @@
+[package]
+name = "rustybrain"
+version = "0.1.0"
+edition = "2021"
+
 [workspace]
 
 members = [
    "rustybrain-ui",
 ]
+
+[dependencies]
+
+rustybrain-ui = {path = "rustybrain-ui"}

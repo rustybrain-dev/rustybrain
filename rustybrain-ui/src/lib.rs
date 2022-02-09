@@ -1,8 +1,8 @@
-
 use relm::{connect, Relm, Update, Widget};
 use gtk::prelude::*;
 use gtk::{Window, Inhibit, WindowType};
 use relm_derive::Msg;
+use relm_derive::widget;
 
 
 #[derive(Msg)]
@@ -37,7 +37,7 @@ impl Widget for Win {
     view! {
         gtk::Window {
             gtk::Box {
-                orientation: Vertical,
+                orientation: gtk::Orientation::Vertical,
                 gtk::Button {
                     // By default, an event with one paramater is assumed.
                     clicked => Msg::Increment,
@@ -62,4 +62,8 @@ impl Widget for Win {
             delete_event(_, _) => (Msg::Quit, Inhibit(false)),
         }
     }
+}
+
+pub fn run() {
+	Win::run(()).unwrap()
 }

@@ -551,6 +551,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustybrain"
+version = "0.1.0"
+dependencies = [
+ "rustybrain-ui",
+]
+
+[[package]]
 name = "rustybrain-ui"
 version = "0.1.0"
 dependencies = [
