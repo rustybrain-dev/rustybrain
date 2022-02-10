@@ -5,6 +5,7 @@ use gtk::TextTagTable;
 
 pub struct Style {
     font: String,
+    font_size: i32,
     table: TextTagTable,
 }
 
@@ -12,6 +13,7 @@ impl Style {
     pub fn new() -> Self {
         let mut style = Style {
             font: "Victor Mono".to_string(),
+            font_size: 14,
             table: TextTagTable::new(),
         };
         style.fill();
@@ -23,6 +25,7 @@ impl Style {
     }
 
     fn fill(&mut self) {
+        self.fill_paragraph();
         self.fill_headline();
         self.fill_link();
         self.fill_code();
@@ -32,11 +35,18 @@ impl Style {
         self.fill_strikethrough()
     }
 
+    fn fill_paragraph(&mut self) {
+        let font = format!("{} {}", self.font, self.font_size);
+        let fd = FontDescription::from_string(&font);
+        let tag = TextTag::builder().name("p").font_desc(&fd).build();
+        self.table.add(&tag);
+    }
+
     fn fill_headline(&mut self) {
-        let font_sizes: Vec<i32> = vec![28, 26, 24, 21, 18, 15, 14];
+        let font_sizes: Vec<i32> = vec![14, 12, 10, 8, 6, 4, 2];
         let mut hn = 1;
         for sz in font_sizes {
-            let font = format!("{} {}", self.font, sz);
+            let font = format!("{} {}", self.font, sz + self.font_size);
             let fd = FontDescription::from_string(&font);
             let name = format!("h{}", hn);
             let tag = TextTag::builder().name(&name).font_desc(&fd).build();
