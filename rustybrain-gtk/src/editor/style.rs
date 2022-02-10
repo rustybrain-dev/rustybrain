@@ -32,7 +32,8 @@ impl Style {
         self.fill_code_block();
         self.fill_bold();
         self.fill_italic();
-        self.fill_strikethrough()
+        self.fill_strikethrough();
+		self.fill_hidden();
     }
 
     fn fill_paragraph(&mut self) {
@@ -63,7 +64,7 @@ impl Style {
     fn fill_code_block(&mut self) {
         let tag = TextTag::builder()
             .name("code-block")
-            .background("gray")
+            .paragraph_background("gray")
             .build();
         self.table.add(&tag);
     }
@@ -73,4 +74,12 @@ impl Style {
     fn fill_italic(&mut self) {}
 
     fn fill_strikethrough(&mut self) {}
+
+	fn fill_hidden(&mut self){
+        let tag = TextTag::builder()
+            .name("hidden")
+            .invisible(true)
+            .build();
+        self.table.add(&tag);
+	}
 }
