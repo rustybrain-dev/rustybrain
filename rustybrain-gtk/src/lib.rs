@@ -2,7 +2,7 @@ mod editor;
 
 use gtk::prelude::*;
 use gtk::{Inhibit, Window, WindowType};
-use relm::{Component, Relm, Update, Widget, connect};
+use relm::{connect, Component, Relm, Update, Widget};
 use relm_derive::Msg;
 
 #[derive(Msg)]
@@ -15,9 +15,9 @@ pub struct Model {}
 pub struct Win {
     model: Model,
     window: Window,
-	// Hold editor to avoid it been dropped, otherwise that will cause panic.
-	// See also: https://github.com/antoyo/relm/issues/278
-	editor: Component<editor::Editor>,
+    // Hold editor to avoid it been dropped, otherwise that will cause panic.
+    // See also: https://github.com/antoyo/relm/issues/278
+    editor: Component<editor::Editor>,
 }
 
 impl Update for Win {
@@ -60,7 +60,11 @@ impl Widget for Win {
         window.set_child(Some(editor.widget()));
         window.resize(800, 600);
         window.show_all();
-        Win { model, window, editor }
+        Win {
+            model,
+            window,
+            editor,
+        }
     }
 }
 

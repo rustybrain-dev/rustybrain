@@ -7,9 +7,11 @@ edition = "2021"
 
 members = [
    "rustybrain-gtk",
+   "rustybrain-core",
 ]
 
 [dependencies]
 color-eyre = "0.5.11"
 
-rustybrain-gtk = {path = "rustybrain-gtk"}
+rustybrain-gtk = { path = "rustybrain-gtk" }
+rustybrain-core = { path = "rustybrain-core" }
