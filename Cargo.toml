@@ -14,4 +14,3 @@ members = [
 color-eyre = "0.5.11"
 
 rustybrain-gtk = { path = "rustybrain-gtk" }
-rustybrain-core = { path = "rustybrain-core" }

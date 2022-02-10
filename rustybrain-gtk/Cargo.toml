@@ -9,3 +9,4 @@ edition = "2021"
 gtk = "^0.14.0"
 relm = "^0.22.0"
 relm-derive = "^0.22.0"
+rustybrain-core = { path = "../rustybrain-core" }

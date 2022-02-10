@@ -703,7 +703,6 @@ name = "rustybrain"
 version = "0.1.0"
 dependencies = [
  "color-eyre",
- "rustybrain-core",
  "rustybrain-gtk",
 ]
 
@@ -711,7 +710,7 @@ dependencies = [
 name = "rustybrain-core"
 version = "0.1.0"
 dependencies = [
- "tree-sitter 0.20.4",
+ "tree-sitter",
  "tree-sitter-markdown",
 ]
 
@@ -722,6 +721,7 @@ dependencies = [
  "gtk",
  "relm",
  "relm-derive",
+ "rustybrain-core",
 ]
 
 [[package]]
@@ -919,23 +919,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "tree-sitter"
-version = "0.20.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e34327f8eac545e3f037382471b2b19367725a242bba7bc45edb9efb49fe39a"
-dependencies = [
- "cc",
- "regex",
-]
-
-[[package]]
 name = "tree-sitter-markdown"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c7c1cfe0396b0e500cc99067bcd2d48720eb08a077e2690194f0c3a3d105f9a0"
 dependencies = [
  "cc",
- "tree-sitter 0.19.5",
+ "tree-sitter",
 ]
 
 [[package]]
