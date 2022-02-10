@@ -117,6 +117,9 @@ impl Editor {
                 }
             }
         }
+        if node.kind() == "fenced_code_block" {
+            self.apply_tag_to_node("code-block", node);
+        }
     }
 
     fn apply_tag_to_node(&self, tag: &str, node: &Node) {

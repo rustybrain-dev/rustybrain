@@ -60,7 +60,13 @@ impl Style {
 
     fn fill_code(&mut self) {}
 
-    fn fill_code_block(&mut self) {}
+    fn fill_code_block(&mut self) {
+        let tag = TextTag::builder()
+            .name("code-block")
+            .background("gray")
+            .build();
+        self.table.add(&tag);
+    }
 
     fn fill_bold(&mut self) {}
 
