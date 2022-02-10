@@ -45,7 +45,7 @@ impl Widget for Editor {
     fn view(relm: &relm::Relm<Self>, model: Self::Model) -> Self {
         let box_ = gtk::Box::new(gtk::Orientation::Vertical, 10);
         let buffer = gtk::TextBuffer::new::<TextTagTable>(None);
-        buffer.set_text("Hello, RustyBrain!");
+        buffer.set_text("Nobody ever Start From Scratch");
         connect!(
             relm,
             buffer,
