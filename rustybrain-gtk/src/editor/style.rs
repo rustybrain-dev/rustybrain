@@ -43,11 +43,12 @@ impl Style {
     }
 
     fn fill_headline(&mut self) {
-        let font_sizes: Vec<i32> = vec![14, 12, 10, 8, 6, 4, 2];
+        let font_sizes: Vec<i32> = vec![16, 14, 10, 8, 6, 4, 2];
         let mut hn = 1;
         for sz in font_sizes {
             let font = format!("{} {}", self.font, sz + self.font_size);
-            let fd = FontDescription::from_string(&font);
+            let mut fd = FontDescription::from_string(&font);
+            fd.set_style(gtk::pango::Style::Oblique);
             let name = format!("h{}", hn);
             let tag = TextTag::builder().name(&name).font_desc(&fd).build();
             self.table.add(&tag);

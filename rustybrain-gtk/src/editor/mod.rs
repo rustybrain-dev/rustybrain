@@ -1,6 +1,6 @@
 mod style;
 
-use gtk::prelude::*;
+use gtk::{prelude::*, TextIter};
 use relm::connect;
 use relm::{Update, Widget};
 use relm_derive::Msg;
@@ -22,8 +22,7 @@ pub struct Editor {
     buffer: gtk::TextBuffer,
 }
 
-const CONTENT: &'static str = r#"
-# tree-sitter-markdown
+const CONTENT: &'static str = r#"# tree-sitter-markdown
 
 Markdown ([CommonMark Spec v0.29-gfm](https://github.github.com/gfm/)) grammar
 for [tree-sitter](https://github.com/tree-sitter/tree-sitter)
@@ -101,21 +100,35 @@ impl Editor {
         while let Some(node) = nodes_to_deep.pop() {
             self.on_node(&node);
             cursor.reset(node);
-            cursor.goto_first_child();
-            while cursor.goto_next_sibling() {
-                println!("{}", cursor.node().kind());
+            if cursor.goto_first_child() {
                 nodes_to_deep.push(cursor.node());
+                while cursor.goto_next_sibling() {
+                    nodes_to_deep.push(cursor.node());
+                }
             }
         }
     }
 
     fn on_node(&self, node: &Node) {
-        node.start_position();
-        let start = self.buffer.iter_at_offset(node.start_byte() as i32);
-        let end = self.buffer.iter_at_offset(node.end_byte() as i32);
-        if let Some(text) = self.buffer.text(&start, &end, true) {
-            println!("({}: {}", node.kind(), text);
+        for n in 1..8 {
+            if node.kind() == format!("atx_h{}_marker", n) {
+                if let Some(p) = node.parent().as_ref() {
+                    self.apply_tag_to_node(&format!("h{}", n), p);
+                }
+            }
         }
+    }
+
+    fn apply_tag_to_node(&self, tag: &str, node: &Node) {
+        let (start, end) = self.node_to_iter(node);
+        self.buffer.apply_tag_by_name(tag, &start, &end);
+    }
+
+    fn node_to_iter(&self, node: &Node) -> (TextIter, TextIter) {
+        (
+            self.buffer.iter_at_offset(node.start_byte() as i32),
+            self.buffer.iter_at_offset(node.end_byte() as i32),
+        )
     }
 }
 
