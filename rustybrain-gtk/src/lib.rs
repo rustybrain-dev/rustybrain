@@ -13,10 +13,12 @@ pub enum Msg {
 pub struct Model {}
 
 pub struct Win {
+    #[allow(dead_code)]
     model: Model,
     window: Window,
     // Hold editor to avoid it been dropped, otherwise that will cause panic.
     // See also: https://github.com/antoyo/relm/issues/278
+    #[allow(dead_code)]
     editor: Component<editor::Editor>,
 }
 
@@ -27,7 +29,7 @@ impl Update for Win {
 
     type Msg = Msg;
 
-    fn model(relm: &Relm<Self>, param: Self::ModelParam) -> Self::Model {
+    fn model(_relm: &Relm<Self>, _paramm: Self::ModelParam) -> Self::Model {
         Model {}
     }
 

@@ -1,7 +1,7 @@
 mod block;
 mod style;
 
-use gtk::{prelude::*, TextIter, TextMark, TextTag};
+use gtk::prelude::*;
 use relm::connect;
 use relm::{Update, Widget};
 use relm_derive::Msg;
@@ -131,7 +131,10 @@ impl Update for Editor {
 
     type Msg = Msg;
 
-    fn model(relm: &relm::Relm<Self>, param: Self::ModelParam) -> Self::Model {
+    fn model(
+        _relm: &relm::Relm<Self>,
+        _paramm: Self::ModelParam,
+    ) -> Self::Model {
         Model { tree: None }
     }
 
