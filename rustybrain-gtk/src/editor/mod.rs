@@ -92,9 +92,7 @@ impl Editor {
         }
         let text = raw_text.unwrap();
 
-        if let Ok(tree) =
-            rustybrain_core::md::parse(text.as_str(), self.model.tree.as_ref())
-        {
+        if let Ok(tree) = rustybrain_core::md::parse(text.as_str(), None) {
             self.model.tree = tree;
         } else {
             self.model.tree = None;
