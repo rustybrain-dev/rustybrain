@@ -1,15 +1,17 @@
+mod block;
 mod style;
 
-use gtk::{TextIter, TextMark, TextTag, prelude::*};
+use gtk::{prelude::*, TextIter, TextMark, TextTag};
 use relm::connect;
 use relm::{Update, Widget};
 use relm_derive::Msg;
 use rustybrain_core::md::TreeCursor;
 use rustybrain_core::md::{Node, Tree};
 
+use self::block::Blocking;
+
 pub struct Model {
     tree: Option<Tree>,
-	tag_positions: Vec<(TextIter, TextIter)>,
 }
 
 #[derive(Msg)]
@@ -21,6 +23,7 @@ pub struct Editor {
     model: Model,
     box_: gtk::Box,
     buffer: gtk::TextBuffer,
+    blocks: Vec<block::Block>,
 }
 
 const CONTENT: &'static str = r#"# tree-sitter-markdown
@@ -76,6 +79,11 @@ MIT © [Ika](https://github.com/ikatyang)
 
 impl Editor {
     fn on_buffer_changed(&mut self) {
+        while let Some(blk) = self.blocks.pop() {
+            blk.remove_tag(&self.buffer);
+            blk.umount(&self.buffer);
+        }
+
         let start = self.buffer.start_iter();
         let end = self.buffer.end_iter();
         let raw_text = self.buffer.text(&start, &end, true);
@@ -91,9 +99,7 @@ impl Editor {
         } else {
             self.model.tree = None;
         }
-		while let Some((start, end)) = self.model.tag_positions.pop() {
-			self.buffer.remove_all_tags(&start, &end);
-		}
+
         if let Some(tree) = self.model.tree.clone() {
             self.walk(tree.walk());
         }
@@ -114,44 +120,10 @@ impl Editor {
     }
 
     fn on_node(&mut self, node: &Node) {
-        for n in 1..8 {
-            if node.kind() == format!("atx_h{}_marker", n) {
-                if let Some(p) = node.parent().as_ref() {
-                    self.apply_tag_to_node(&format!("h{}", n), p);
-                }
-            }
-        }
-        if node.kind() == "fenced_code_block" {
-			let begin_line_start = self.buffer.iter_at_line(node.start_position().row as i32);
-			let begin_line_stop = self.buffer.iter_at_line(node.start_position().row as i32 + 1);
-			self.apply_tag_by_name("hidden", begin_line_start, begin_line_stop);
-
-			let end_line_start = self.buffer.iter_at_line(node.end_position().row as i32);
-			let end_line_stop = self.buffer.iter_at_line(node.end_position().row as i32 + 1);
-			self.apply_tag_by_name("hidden", end_line_start, end_line_stop);
-        }
-		if node.kind() == "code_fence_content" {
-            self.apply_tag_to_node("code-block", node);
-		}
+        let mut blk = block::Block::from_node(node, &mut self.buffer);
+        blk.apply_tag(&self.buffer);
+        self.blocks.push(blk);
     }
-
-    fn apply_tag_to_node(&mut self, tag: &str, node: &Node) {
-        let (start, end) = self.node_to_iter(node);
-		self.apply_tag_by_name(tag, start, end);
-    }
-
-    fn node_to_iter(&self, node: &Node) -> (TextIter, TextIter) {
-        (
-            self.buffer.iter_at_offset(node.start_byte() as i32),
-            self.buffer.iter_at_offset(node.end_byte() as i32),
-        )
-    }
-
-	fn apply_tag_by_name(&mut self, tag: &str, start: TextIter, end: TextIter) {
-        self.buffer.apply_tag_by_name(tag, &start, &end);
-		self.model.tag_positions.push((start, end));
-
-	}
 }
 
 impl Update for Editor {
@@ -162,7 +134,7 @@ impl Update for Editor {
     type Msg = Msg;
 
     fn model(relm: &relm::Relm<Self>, param: Self::ModelParam) -> Self::Model {
-        Model { tree: None, tag_positions: vec![] }
+        Model { tree: None }
     }
 
     fn update(&mut self, event: Self::Msg) {
@@ -207,6 +179,7 @@ impl Widget for Editor {
             model,
             box_,
             buffer,
+            blocks: vec![],
         }
     }
 

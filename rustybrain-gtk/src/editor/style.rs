@@ -33,7 +33,7 @@ impl Style {
         self.fill_bold();
         self.fill_italic();
         self.fill_strikethrough();
-		self.fill_hidden();
+        self.fill_hidden();
     }
 
     fn fill_paragraph(&mut self) {
@@ -75,11 +75,8 @@ impl Style {
 
     fn fill_strikethrough(&mut self) {}
 
-	fn fill_hidden(&mut self){
-        let tag = TextTag::builder()
-            .name("hidden")
-            .invisible(true)
-            .build();
+    fn fill_hidden(&mut self) {
+        let tag = TextTag::builder().name("hidden").invisible(true).build();
         self.table.add(&tag);
-	}
+    }
 }
