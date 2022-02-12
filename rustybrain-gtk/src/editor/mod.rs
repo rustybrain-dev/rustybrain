@@ -118,7 +118,7 @@ impl Editor {
     }
 
     fn on_node(&mut self, node: &Node) {
-        let mut blk = block::Block::from_node(node, &mut self.buffer);
+        let blk = block::Block::from_node(node, &mut self.buffer);
         blk.apply_tag(&self.buffer);
         self.blocks.push(blk);
     }

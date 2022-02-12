@@ -35,7 +35,7 @@ impl Blocking for Headline {
         &self.right
     }
 
-    fn apply_tag(&mut self, buffer: &TextBuffer) {
+    fn apply_tag(&self, buffer: &TextBuffer) {
         let start = self.start(buffer);
         let end = self.end(buffer);
         let tag = format!("h{}", self.number);

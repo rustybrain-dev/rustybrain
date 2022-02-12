@@ -19,7 +19,7 @@ pub trait Blocking {
     fn left(&self) -> &TextMark;
     fn right(&self) -> &TextMark;
 
-    fn apply_tag(&mut self, buffer: &TextBuffer);
+    fn apply_tag(&self, buffer: &TextBuffer);
 
     fn start(&self, buffer: &TextBuffer) -> TextIter {
         buffer.iter_at_mark(self.left())
@@ -96,7 +96,7 @@ impl Blocking for Block {
         }
     }
 
-    fn apply_tag(&mut self, buffer: &TextBuffer) {
+    fn apply_tag(&self, buffer: &TextBuffer) {
         match self {
             Block::Headline(h) => h.apply_tag(buffer),
             Block::Anonymous(a) => a.apply_tag(buffer),

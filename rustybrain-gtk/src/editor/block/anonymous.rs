@@ -25,7 +25,7 @@ impl Blocking for Anonymous {
         &self.right
     }
 
-    fn apply_tag(&mut self, _: &TextBuffer) {}
+    fn apply_tag(&self, _: &TextBuffer) {}
 
     fn start(&self, buffer: &TextBuffer) -> gtk::TextIter {
         buffer.iter_at_mark(self.left())

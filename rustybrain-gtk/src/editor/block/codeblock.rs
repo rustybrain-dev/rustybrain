@@ -8,12 +8,6 @@ use super::Blocking;
 pub struct Codeblock {
     content: Option<CodeblockContent>,
 
-    begin_line_start: TextIter,
-    begin_line_stop: TextIter,
-
-    end_line_start: TextIter,
-    end_line_stop: TextIter,
-
     left: TextMark,
     right: TextMark,
 }
@@ -23,16 +17,6 @@ impl Blocking for Codeblock {
         node: &rustybrain_core::md::Node,
         buffer: &gtk::TextBuffer,
     ) -> Self {
-        let begin_line_start =
-            buffer.iter_at_line(node.start_position().row as i32);
-        let begin_line_stop =
-            buffer.iter_at_line(node.start_position().row as i32 + 1);
-
-        let end_line_start =
-            buffer.iter_at_line(node.end_position().row as i32);
-        let end_line_stop =
-            buffer.iter_at_line(node.end_position().row as i32 + 1);
-
         let mut content = None;
         let child: Option<Node> = (0 as usize..node.child_count())
             .filter_map(|i| {
@@ -59,12 +43,6 @@ impl Blocking for Codeblock {
         Codeblock {
             content,
 
-            begin_line_stop,
-            begin_line_start,
-
-            end_line_start,
-            end_line_stop,
-
             left,
             right,
         }
@@ -78,20 +56,14 @@ impl Blocking for Codeblock {
         &self.right
     }
 
-    fn apply_tag(&mut self, buffer: &gtk::TextBuffer) {
-        if let Some(content) = self.content.as_mut() {
+    fn apply_tag(&self, buffer: &gtk::TextBuffer) {
+        if let Some(content) = &self.content {
+            let (bl_start, bl_end) = self.begin_line(buffer);
+            let (el_start, el_end) = self.end_line(buffer);
             content.apply_tag(buffer);
+            buffer.apply_tag_by_name("hidden", &bl_start, &bl_end);
+            buffer.apply_tag_by_name("hidden", &el_start, &el_end);
         }
-        buffer.apply_tag_by_name(
-            "hidden",
-            &self.begin_line_start,
-            &self.begin_line_stop,
-        );
-        buffer.apply_tag_by_name(
-            "hidden",
-            &self.end_line_start,
-            &self.end_line_stop,
-        );
     }
 
     fn start(&self, buffer: &gtk::TextBuffer) -> gtk::TextIter {
@@ -103,11 +75,13 @@ impl Blocking for Codeblock {
     }
 
     fn remove_tag(&self, buffer: &gtk::TextBuffer) {
-        buffer.remove_all_tags(&self.begin_line_start, &self.begin_line_stop);
-        buffer.remove_all_tags(&self.end_line_start, &self.end_line_stop);
+        if let Some(content) = &self.content {
+            let (bl_start, bl_end) = self.begin_line(buffer);
+            let (el_start, el_end) = self.end_line(buffer);
 
-        if let Some(content) = self.content.as_ref() {
             content.remove_tag(buffer);
+            buffer.remove_all_tags(&bl_start, &bl_end);
+            buffer.remove_all_tags(&el_start, &el_end);
         }
     }
 
@@ -117,6 +91,22 @@ impl Blocking for Codeblock {
         if let Some(content) = self.content.as_ref() {
             content.umount(buffer);
         }
+    }
+}
+
+impl Codeblock {
+    fn begin_line(&self, buffer: &gtk::TextBuffer) -> (TextIter, TextIter) {
+        let start = buffer.iter_at_mark(self.left());
+        let end = buffer
+            .iter_at_offset(buffer.iter_at_line(start.line() + 1).offset() - 1);
+        (start, end)
+    }
+
+    fn end_line(&self, buffer: &gtk::TextBuffer) -> (TextIter, TextIter) {
+        let end = buffer.iter_at_mark(self.right());
+        let start =
+            buffer.iter_at_offset(buffer.iter_at_line(end.line() - 1).offset());
+        (start, end)
     }
 }
 
@@ -148,9 +138,15 @@ impl Blocking for CodeblockContent {
         &self.right
     }
 
-    fn apply_tag(&mut self, buffer: &gtk::TextBuffer) {
+    fn apply_tag(&self, buffer: &gtk::TextBuffer) {
         let start = self.start(buffer);
         let end = self.end(buffer);
         buffer.apply_tag_by_name("code-block", &start, &end);
+    }
+}
+
+impl CodeblockContent {
+    pub fn length(&self, buffer: &gtk::TextBuffer) -> i32 {
+        return self.end(buffer).offset() - self.start(buffer).offset();
     }
 }
