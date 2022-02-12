@@ -37,17 +37,21 @@ impl Style {
     }
 
     fn fill_paragraph(&mut self) {
-        let font = format!("{} {}", self.font, self.font_size);
-        let fd = FontDescription::from_string(&font);
+        let fd = self.font_desc();
         let tag = TextTag::builder().name("p").font_desc(&fd).build();
         self.table.add(&tag);
+    }
+
+    fn font_desc(&self) -> FontDescription {
+        let font = format!("{} {}", self.font, self.font_size);
+        FontDescription::from_string(&font)
     }
 
     fn fill_headline(&mut self) {
         let font_sizes: Vec<i32> = vec![16, 14, 10, 8, 6, 4, 2];
         let mut hn = 1;
         for sz in font_sizes {
-            let font = format!("{} {}", self.font, sz + self.font_size);
+            let font = format!("{} {}", self.font, self.font_size + sz);
             let mut fd = FontDescription::from_string(&font);
             fd.set_style(gtk::pango::Style::Oblique);
             let name = format!("h{}", hn);
@@ -62,9 +66,11 @@ impl Style {
     fn fill_code(&mut self) {}
 
     fn fill_code_block(&mut self) {
+        let fd = self.font_desc();
         let tag = TextTag::builder()
             .name("code-block")
-            .paragraph_background("gray")
+            .paragraph_background("#c7c7c7")
+            .font_desc(&fd)
             .build();
         self.table.add(&tag);
     }
