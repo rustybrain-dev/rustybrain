@@ -1,3 +1,4 @@
+pub mod colorpalette;
 pub mod md;
 
 #[cfg(test)]

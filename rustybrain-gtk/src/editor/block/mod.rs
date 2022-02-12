@@ -1,5 +1,6 @@
-pub mod anonymous;
-pub mod headline;
+mod anonymous;
+mod codeblock;
+mod headline;
 
 use gtk::prelude::*;
 use gtk::TextBuffer;
@@ -7,8 +8,10 @@ use gtk::TextIter;
 use gtk::TextMark;
 use rustybrain_core::md::Node;
 
-pub use anonymous::Anonymous;
-pub use headline::Headline;
+use anonymous::Anonymous;
+use headline::Headline;
+
+use self::codeblock::Codeblock;
 
 pub trait Blocking {
     fn from_node(node: &Node, buffer: &TextBuffer) -> Self;
@@ -40,6 +43,7 @@ pub trait Blocking {
 
 pub enum Block {
     Headline(Headline),
+    Codeblock(Codeblock),
     Anonymous(Anonymous),
 }
 
@@ -54,6 +58,9 @@ impl Blocking for Block {
                 }
             }
         }
+        if node.kind() == "fenced_code_block" {
+            return Self::Codeblock(Codeblock::from_node(node, buffer));
+        }
         Self::Anonymous(Anonymous::from_node(node, buffer))
     }
 
@@ -61,6 +68,7 @@ impl Blocking for Block {
         match self {
             Block::Headline(h) => h.start(buffer),
             Block::Anonymous(a) => a.start(buffer),
+            Block::Codeblock(b) => b.start(buffer),
         }
     }
 
@@ -68,6 +76,7 @@ impl Blocking for Block {
         match self {
             Block::Headline(h) => h.end(buffer),
             Block::Anonymous(a) => a.end(buffer),
+            Block::Codeblock(b) => b.end(buffer),
         }
     }
 
@@ -75,6 +84,7 @@ impl Blocking for Block {
         match self {
             Block::Headline(h) => h.left(),
             Block::Anonymous(a) => a.left(),
+            Block::Codeblock(b) => b.left(),
         }
     }
 
@@ -82,6 +92,7 @@ impl Blocking for Block {
         match self {
             Block::Headline(h) => h.right(),
             Block::Anonymous(a) => a.right(),
+            Block::Codeblock(b) => b.right(),
         }
     }
 
@@ -89,6 +100,7 @@ impl Blocking for Block {
         match self {
             Block::Headline(h) => h.apply_tag(buffer),
             Block::Anonymous(a) => a.apply_tag(buffer),
+            Block::Codeblock(b) => b.apply_tag(buffer),
         }
     }
 
@@ -96,6 +108,7 @@ impl Blocking for Block {
         match self {
             Block::Headline(h) => h.umount(buffer),
             Block::Anonymous(a) => a.umount(buffer),
+            Block::Codeblock(b) => b.umount(buffer),
         }
     }
 
@@ -103,6 +116,7 @@ impl Blocking for Block {
         match self {
             Block::Headline(h) => h.remove_tag(buffer),
             Block::Anonymous(a) => a.remove_tag(buffer),
+            Block::Codeblock(b) => b.remove_tag(buffer),
         }
     }
 }
