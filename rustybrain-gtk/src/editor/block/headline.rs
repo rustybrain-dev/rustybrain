@@ -16,7 +16,6 @@ pub struct Headline {
 impl Blocking for Headline {
     fn from_node(node: &Node, buffer: &TextBuffer) -> Self {
         let (left, right) = Self::node_endpoint(node, buffer);
-        let mut marker = None;
         let mut content = None;
         if let Some(child) = Self::node_child_by_kind(node, "heading_content") {
             content = Some(Content::from_node(&child, buffer));
@@ -24,7 +23,7 @@ impl Blocking for Headline {
         Headline {
             left,
             right,
-            marker,
+            marker: None,
             content,
         }
     }
