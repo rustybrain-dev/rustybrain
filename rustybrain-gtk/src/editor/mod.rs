@@ -136,7 +136,7 @@ impl Editor {
                 continue;
             }
 
-            if blk.start(&self.buffer).offset() < offset
+            if blk.start(&self.buffer).offset() <= offset
                 && blk.end(&self.buffer).offset() > offset
             {
                 blk.cursor_in(&self.buffer)
