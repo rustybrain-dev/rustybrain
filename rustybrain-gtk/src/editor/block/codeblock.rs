@@ -18,27 +18,12 @@ impl Blocking for Codeblock {
         buffer: &gtk::TextBuffer,
     ) -> Self {
         let mut content = None;
-        let child: Option<Node> = (0 as usize..node.child_count())
-            .filter_map(|i| {
-                if let Some(n) = node.child(i) {
-                    if n.kind() == "code_fence_content" {
-                        return Some(n);
-                    }
-                }
-                None
-            })
-            .last();
+        let child = Self::node_child_by_kind(node, "code_fence_content");
         if let Some(cnt_node) = child {
             content = Some(CodeblockContent::from_node(&cnt_node, buffer));
         }
 
-        let left = TextMark::builder().left_gravity(false).build();
-        let right = TextMark::builder().left_gravity(false).build();
-
-        let start = buffer.iter_at_offset(node.start_byte() as i32);
-        let end = buffer.iter_at_offset(node.end_byte() as i32 + 1);
-        buffer.add_mark(&left, &start);
-        buffer.add_mark(&right, &end);
+        let (left, right) = Self::node_endpoint(node, buffer);
 
         Codeblock {
             content,
@@ -137,13 +122,7 @@ impl Blocking for CodeblockContent {
         node: &rustybrain_core::md::Node,
         buffer: &gtk::TextBuffer,
     ) -> Self {
-        let left = TextMark::builder().left_gravity(false).build();
-        let right = TextMark::builder().left_gravity(false).build();
-
-        let start = buffer.iter_at_offset(node.start_byte() as i32);
-        let end = buffer.iter_at_offset(node.end_byte() as i32 + 1);
-        buffer.add_mark(&left, &start);
-        buffer.add_mark(&right, &end);
+        let (left, right) = Self::node_endpoint(node, buffer);
         CodeblockContent { left, right }
     }
 

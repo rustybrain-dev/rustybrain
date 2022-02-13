@@ -13,13 +13,7 @@ pub struct Headline {
 
 impl Blocking for Headline {
     fn from_node(node: &Node, buffer: &TextBuffer) -> Self {
-        let left = TextMark::builder().left_gravity(false).build();
-        let right = TextMark::builder().left_gravity(false).build();
-
-        let start = buffer.iter_at_offset(node.start_byte() as i32);
-        let end = buffer.iter_at_offset(node.end_byte() as i32 + 1);
-        buffer.add_mark(&left, &start);
-        buffer.add_mark(&right, &end);
+        let (left, right) = Self::node_endpoint(node, buffer);
         Headline {
             left,
             right,

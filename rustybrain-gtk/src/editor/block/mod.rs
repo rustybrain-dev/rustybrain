@@ -1,6 +1,7 @@
 mod anonymous;
 mod codeblock;
 mod headline;
+mod link;
 
 use gtk::prelude::*;
 use gtk::TextBuffer;
@@ -14,6 +15,32 @@ use headline::Headline;
 use self::codeblock::Codeblock;
 
 pub trait Blocking {
+    fn node_endpoint(node: &Node, buffer: &TextBuffer) -> (TextMark, TextMark) {
+        let left = TextMark::builder().left_gravity(false).build();
+        let right = TextMark::builder().left_gravity(false).build();
+        let start = buffer.iter_at_offset(node.start_byte() as i32);
+        let end = buffer.iter_at_offset(node.end_byte() as i32 + 1);
+        buffer.add_mark(&left, &start);
+        buffer.add_mark(&right, &end);
+        (left, right)
+    }
+
+    fn node_child_by_kind<'a>(
+        node: &'a Node,
+        name: &'a str,
+    ) -> Option<Node<'a>> {
+        (0 as usize..node.child_count())
+            .filter_map(|i| {
+                if let Some(n) = node.child(i) {
+                    if n.kind() == name {
+                        return Some(n);
+                    }
+                }
+                None
+            })
+            .last()
+    }
+
     fn from_node(node: &Node, buffer: &TextBuffer) -> Self;
 
     fn left(&self) -> &TextMark;
