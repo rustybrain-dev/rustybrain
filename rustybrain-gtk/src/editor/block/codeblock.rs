@@ -58,12 +58,17 @@ impl Blocking for Codeblock {
 
     fn apply_tag(&self, buffer: &gtk::TextBuffer) {
         if let Some(content) = &self.content {
-            let (bl_start, bl_end) = self.begin_line(buffer);
-            let (el_start, el_end) = self.end_line(buffer);
             content.apply_tag(buffer);
-            buffer.apply_tag_by_name("hidden", &bl_start, &bl_end);
-            buffer.apply_tag_by_name("hidden", &el_start, &el_end);
+            self.hide_begin_end_line(buffer);
         }
+    }
+
+    fn cursor_in(&self, buffer: &gtk::TextBuffer) {
+        self.show_begin_end_line(buffer);
+    }
+
+    fn cursor_out(&self, buffer: &gtk::TextBuffer) {
+        self.hide_begin_end_line(buffer);
     }
 
     fn start(&self, buffer: &gtk::TextBuffer) -> gtk::TextIter {
@@ -76,12 +81,8 @@ impl Blocking for Codeblock {
 
     fn remove_tag(&self, buffer: &gtk::TextBuffer) {
         if let Some(content) = &self.content {
-            let (bl_start, bl_end) = self.begin_line(buffer);
-            let (el_start, el_end) = self.end_line(buffer);
-
             content.remove_tag(buffer);
-            buffer.remove_all_tags(&bl_start, &bl_end);
-            buffer.remove_all_tags(&el_start, &el_end);
+            self.show_begin_end_line(buffer)
         }
     }
 
@@ -107,6 +108,22 @@ impl Codeblock {
         let start =
             buffer.iter_at_offset(buffer.iter_at_line(end.line() - 1).offset());
         (start, end)
+    }
+
+    fn hide_begin_end_line(&self, buffer: &gtk::TextBuffer) {
+        let (bl_start, bl_end) = self.begin_line(buffer);
+        let (el_start, el_end) = self.end_line(buffer);
+
+        buffer.apply_tag_by_name("hidden", &bl_start, &bl_end);
+        buffer.apply_tag_by_name("hidden", &el_start, &el_end);
+    }
+
+    fn show_begin_end_line(&self, buffer: &gtk::TextBuffer) {
+        let (bl_start, bl_end) = self.begin_line(buffer);
+        let (el_start, el_end) = self.end_line(buffer);
+
+        buffer.remove_tag_by_name("hidden", &bl_start, &bl_end);
+        buffer.remove_tag_by_name("hidden", &el_start, &el_end);
     }
 }
 

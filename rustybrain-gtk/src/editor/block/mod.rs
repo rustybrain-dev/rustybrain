@@ -39,6 +39,10 @@ pub trait Blocking {
         buffer.delete_mark(self.left());
         buffer.delete_mark(self.right());
     }
+
+    fn cursor_in(&self, buffer: &TextBuffer) {}
+
+    fn cursor_out(&self, buffer: &TextBuffer) {}
 }
 
 pub enum Block {
@@ -117,6 +121,32 @@ impl Blocking for Block {
             Block::Headline(h) => h.remove_tag(buffer),
             Block::Anonymous(a) => a.remove_tag(buffer),
             Block::Codeblock(b) => b.remove_tag(buffer),
+        }
+    }
+
+    fn cursor_in(&self, buffer: &TextBuffer) {
+        match self {
+            Block::Headline(h) => h.cursor_in(buffer),
+            Block::Codeblock(c) => c.cursor_in(buffer),
+            Block::Anonymous(a) => a.cursor_in(buffer),
+        }
+    }
+
+    fn cursor_out(&self, buffer: &TextBuffer) {
+        match self {
+            Block::Headline(h) => h.cursor_out(buffer),
+            Block::Codeblock(h) => h.cursor_out(buffer),
+            Block::Anonymous(h) => h.cursor_out(buffer),
+        }
+    }
+}
+
+impl Block {
+    pub fn is_anonymous(&self) -> bool {
+        if let Block::Anonymous(_) = self {
+            true
+        } else {
+            false
         }
     }
 }

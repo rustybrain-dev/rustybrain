@@ -17,6 +17,7 @@ pub struct Model {
 #[derive(Msg)]
 pub enum Msg {
     Changed,
+    Cursor,
 }
 
 pub struct Editor {
@@ -86,6 +87,10 @@ impl Editor {
 
         let start = self.buffer.start_iter();
         let end = self.buffer.end_iter();
+
+        self.buffer.remove_all_tags(&start, &end);
+        self.buffer.apply_tag_by_name("p", &start, &end);
+
         let raw_text = self.buffer.text(&start, &end, true);
         if raw_text.is_none() {
             return;
@@ -122,6 +127,24 @@ impl Editor {
         blk.apply_tag(&self.buffer);
         self.blocks.push(blk);
     }
+
+    fn on_cursor_notify(&mut self) {
+        let offset = self.buffer.cursor_position();
+
+        for blk in &self.blocks {
+            if blk.is_anonymous() {
+                continue;
+            }
+
+            if blk.start(&self.buffer).offset() < offset
+                && blk.end(&self.buffer).offset() > offset
+            {
+                blk.cursor_in(&self.buffer)
+            } else {
+                blk.cursor_out(&self.buffer)
+            }
+        }
+    }
 }
 
 impl Update for Editor {
@@ -141,6 +164,7 @@ impl Update for Editor {
     fn update(&mut self, event: Self::Msg) {
         match event {
             Msg::Changed => self.on_buffer_changed(),
+            Msg::Cursor => self.on_cursor_notify(),
         }
     }
 }
@@ -163,10 +187,12 @@ impl Widget for Editor {
             connect_changed(_),
             return (Some(Msg::Changed), ())
         );
-
-        let start = buffer.start_iter();
-        let end = buffer.end_iter();
-        buffer.apply_tag_by_name("p", &start, &end);
+        connect!(
+            relm,
+            buffer,
+            connect_cursor_position_notify(_),
+            return (Some(Msg::Cursor), ())
+        );
         let view = gtk::TextView::builder()
             .buffer(&buffer)
             .width_request(800)
