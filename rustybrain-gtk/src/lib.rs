@@ -68,9 +68,9 @@ impl Widget for Win {
         let listview = relm::init::<listview::ListView>(()).unwrap();
         let editor = relm::init::<editor::Editor>(()).unwrap();
         let backlinks = relm::init::<backlinks::Backlinks>(()).unwrap();
-        box_.pack_start(listview.widget(), true, true, 2);
+        box_.pack_start(listview.widget(), false, true, 2);
         box_.pack_start(editor.widget(), true, true, 2);
-        box_.pack_end(backlinks.widget(), true, true, 2);
+        box_.pack_end(backlinks.widget(), false, true, 2);
 
         let window = Window::new(WindowType::Toplevel);
         window.set_title("Rusty Brain -- To Help You Build Your Second Brain!");
@@ -82,7 +82,7 @@ impl Widget for Win {
         );
         window.set_position(gtk::WindowPosition::Mouse);
         window.set_child(Some(&box_));
-        window.resize(800, 600);
+        window.resize(1200, 600);
         window.show_all();
         Win {
             model,

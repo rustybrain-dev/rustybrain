@@ -39,6 +39,7 @@ impl Widget for ListView {
 
     fn view(relm: &relm::Relm<Self>, model: Self::Model) -> Self {
         let window = ScrolledWindow::new::<Adjustment, Adjustment>(None, None);
+        window.set_width_request(200);
         ListView { window }
     }
 }
