@@ -84,7 +84,7 @@ impl Blocking for Block {
             if node.kind() == format!("atx_h{}_marker", n) {
                 if let Some(p) = node.parent().as_ref() {
                     let mut headline = Headline::from_node(p, buffer);
-                    headline.set_number(n);
+                    headline.set_number(n, node, buffer);
                     return Self::Headline(headline);
                 }
             }
