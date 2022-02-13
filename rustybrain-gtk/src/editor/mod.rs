@@ -1,7 +1,7 @@
 mod block;
 mod style;
 
-use gtk::prelude::*;
+use gtk::{prelude::*, Adjustment, Scrollbar, ScrolledWindow};
 use relm::connect;
 use relm::{Update, Widget};
 use relm_derive::Msg;
@@ -22,7 +22,7 @@ pub enum Msg {
 
 pub struct Editor {
     model: Model,
-    box_: gtk::Box,
+    window: gtk::ScrolledWindow,
     buffer: gtk::TextBuffer,
     blocks: Vec<block::Block>,
 }
@@ -170,10 +170,10 @@ impl Update for Editor {
 }
 
 impl Widget for Editor {
-    type Root = gtk::Box;
+    type Root = gtk::ScrolledWindow;
 
     fn root(&self) -> Self::Root {
-        self.box_.clone()
+        self.window.clone()
     }
 
     fn view(relm: &relm::Relm<Self>, model: Self::Model) -> Self {
@@ -199,12 +199,20 @@ impl Widget for Editor {
             .height_request(600)
             .has_tooltip(true)
             .margin(10)
+            .wrap_mode(gtk::WrapMode::Char)
             .build();
         view.set_size_request(800, 600);
         box_.add(&view);
+
+        let hadj = Adjustment::builder().build();
+        let window =
+            ScrolledWindow::new::<Adjustment, Adjustment>(Some(&hadj), None);
+        window.set_child(Some(&box_));
+        window.show_all();
+
         Editor {
             model,
-            box_,
+            window,
             buffer,
             blocks: vec![],
         }

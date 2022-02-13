@@ -1,4 +1,6 @@
+mod backlinks;
 mod editor;
+mod listview;
 
 use gtk::prelude::*;
 use gtk::{Inhibit, Window, WindowType};
@@ -16,10 +18,20 @@ pub struct Win {
     #[allow(dead_code)]
     model: Model,
     window: Window,
+
+    #[allow(dead_code)]
+    box_: gtk::Box,
+
     // Hold editor to avoid it been dropped, otherwise that will cause panic.
     // See also: https://github.com/antoyo/relm/issues/278
     #[allow(dead_code)]
     editor: Component<editor::Editor>,
+
+    #[allow(dead_code)]
+    listview: Component<listview::ListView>,
+
+    #[allow(dead_code)]
+    backlinks: Component<backlinks::Backlinks>,
 }
 
 impl Update for Win {
@@ -48,7 +60,17 @@ impl Widget for Win {
     }
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
+        let box_ = gtk::Box::builder()
+            .orientation(gtk::Orientation::Horizontal)
+            .spacing(6)
+            .build();
+
+        let listview = relm::init::<listview::ListView>(()).unwrap();
         let editor = relm::init::<editor::Editor>(()).unwrap();
+        let backlinks = relm::init::<backlinks::Backlinks>(()).unwrap();
+        box_.pack_start(listview.widget(), true, true, 2);
+        box_.pack_start(editor.widget(), true, true, 2);
+        box_.pack_end(backlinks.widget(), true, true, 2);
 
         let window = Window::new(WindowType::Toplevel);
         window.set_title("Rusty Brain -- To Help You Build Your Second Brain!");
@@ -59,13 +81,16 @@ impl Widget for Win {
             return (Some(Msg::Quit), Inhibit(false))
         );
         window.set_position(gtk::WindowPosition::Mouse);
-        window.set_child(Some(editor.widget()));
+        window.set_child(Some(&box_));
         window.resize(800, 600);
         window.show_all();
         Win {
             model,
             window,
+            box_,
             editor,
+            listview,
+            backlinks,
         }
     }
 }

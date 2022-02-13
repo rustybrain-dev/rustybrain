@@ -1,7 +1,6 @@
 use super::Blocking;
 use gtk::prelude::*;
 use gtk::TextBuffer;
-use gtk::TextIter;
 use gtk::TextMark;
 use rustybrain_core::md::Node;
 

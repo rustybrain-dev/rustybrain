@@ -140,9 +140,3 @@ impl Blocking for CodeblockContent {
         buffer.apply_tag_by_name("code-block", &start, &end);
     }
 }
-
-impl CodeblockContent {
-    pub fn length(&self, buffer: &gtk::TextBuffer) -> i32 {
-        return self.end(buffer).offset() - self.start(buffer).offset();
-    }
-}

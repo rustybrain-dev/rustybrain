@@ -1,7 +1,6 @@
 mod anonymous;
 mod codeblock;
 mod headline;
-mod link;
 
 use gtk::prelude::*;
 use gtk::TextBuffer;
