@@ -3,6 +3,8 @@ mod editor;
 mod listview;
 
 use gtk::prelude::*;
+use gtk::CssProvider;
+use gtk::StyleContext;
 use gtk::{Inhibit, Window, WindowType};
 use relm::{connect, Component, Relm, Update, Widget};
 use relm_derive::Msg;
@@ -32,6 +34,12 @@ pub struct Win {
 
     #[allow(dead_code)]
     backlinks: Component<backlinks::Backlinks>,
+
+    #[allow(dead_code)]
+    css_provider: CssProvider,
+
+    #[allow(dead_code)]
+    css_context: StyleContext,
 }
 
 impl Update for Win {
@@ -60,6 +68,14 @@ impl Widget for Win {
     }
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
+        let css_provider = CssProvider::new();
+        css_provider.load_from_data(CSS.as_bytes()).unwrap();
+        let context = gtk::StyleContext::new();
+        context.add_provider(
+            &css_provider,
+            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+        );
+
         let box_ = gtk::Box::builder()
             .orientation(gtk::Orientation::Horizontal)
             .spacing(6)
@@ -84,6 +100,7 @@ impl Widget for Win {
         window.set_child(Some(&box_));
         window.resize(1200, 600);
         window.show_all();
+
         Win {
             model,
             window,
@@ -91,9 +108,20 @@ impl Widget for Win {
             editor,
             listview,
             backlinks,
+            css_provider,
+            css_context: context,
         }
     }
+
+    fn init_view(&mut self) {}
 }
+
+const CSS: &'static str = r#"
+ * {
+      background-color: red;
+      border-color: shade (mix (rgb (34, 255, 120), #fff, 0.5), 0.9);
+    }
+"#;
 
 pub fn run() {
     Win::run(()).unwrap()
