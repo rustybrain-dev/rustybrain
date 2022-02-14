@@ -1,5 +1,7 @@
 pub mod colorpalette;
+pub mod kasten;
 pub mod md;
+pub mod zettel;
 
 #[cfg(test)]
 mod tests {
