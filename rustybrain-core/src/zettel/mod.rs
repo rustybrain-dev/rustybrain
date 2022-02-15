@@ -94,29 +94,21 @@ impl Zettel {
         })
     }
 
-    pub fn path(&self) -> &str {
-        todo!()
+    pub fn path(&self) -> &Path {
+        self.path.as_path()
     }
 
     pub fn title(&self) -> &str {
-        todo!()
+        &self.header.title
     }
 
     pub fn content(&self) -> &str {
-        todo!()
+        &self.content
     }
 
-    pub fn contexts(&self) -> &str {
-        todo!()
-    }
+    pub fn set_title(&mut self, _title: &str) {}
 
-    pub fn tree(&self) -> Tree {
-        todo!()
-    }
-
-    pub fn set_title(&mut self, title: &str) {}
-
-    pub fn set_content(&mut self, content: &str) {}
+    pub fn set_content(&mut self, _content: &str) {}
 
     pub fn save() {}
 }
