@@ -1,9 +1,10 @@
+mod item;
+
 use gtk::prelude::*;
 use gtk::Adjustment;
-use gtk::Label;
 use gtk::ListBox;
-use gtk::ListBoxRow;
 use gtk::ScrolledWindow;
+use relm::Component;
 use relm::Update;
 use relm::Widget;
 use relm_derive::Msg;
@@ -19,9 +20,12 @@ pub enum Msg {}
 
 pub struct ListView {
     window: ScrolledWindow,
+
+    #[allow(dead_code)]
     view: ListBox,
-    rows: Vec<ListBoxRow>,
-    labels: Vec<Label>,
+
+    #[allow(dead_code)]
+    items: Vec<Component<item::Item>>,
 }
 
 impl Update for ListView {
@@ -49,21 +53,15 @@ impl Widget for ListView {
 
     fn view(_relm: &relm::Relm<Self>, model: Self::Model) -> Self {
         let view = ListBox::new();
-        let mut rows = vec![];
-        let mut labels = vec![];
+        let mut items = vec![];
 
         let kasten = Kasten::new(model.config.clone());
         for zettel in kasten {
             match zettel {
                 Ok(z) => {
-                    println!("{:?}", z);
-                    let row = ListBoxRow::new();
-                    let label = Label::new(Some(z.title()));
-                    row.set_child(Some(&label));
-                    view.add(&row);
-
-                    rows.push(row);
-                    labels.push(label);
+                    let item = relm::init::<item::Item>(z).unwrap();
+                    view.add(item.widget());
+                    items.push(item);
                 }
                 Err(e) => println!("error {:?}", e),
             }
@@ -74,8 +72,7 @@ impl Widget for ListView {
         ListView {
             window,
             view,
-            rows,
-            labels,
+            items,
         }
     }
 }
