@@ -3,13 +3,16 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::io::Cursor;
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use tree_sitter::Tree;
 
+#[derive(Debug)]
 pub enum ZettelError {
     IOError(io::Error),
     ParseHeaderError(toml::de::Error),
+    BuildHeaderError(std::fmt::Error),
 }
 
 impl From<io::Error> for ZettelError {
@@ -24,14 +27,21 @@ impl From<toml::de::Error> for ZettelError {
     }
 }
 
+impl From<std::fmt::Error> for ZettelError {
+    fn from(err: std::fmt::Error) -> Self {
+        ZettelError::BuildHeaderError(err)
+    }
+}
+
+#[derive(Debug)]
 pub struct Zettel {
-    path: String,
+    path: PathBuf,
     header: ZettelHeader,
     content: String,
     link_to: Vec<String>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct ZettelHeader {
     title: String,
 
@@ -52,20 +62,15 @@ impl ZettelHeader {
         let mut line_buf: String = String::new();
         let mut header: String = String::new();
         cursor.read_line(&mut line_buf)?;
-        if let Some(remain) = line_buf.strip_prefix("+") {
-            if remain != "" {
-                return Ok(header);
-            }
+        if line_buf.trim_start_matches("+").trim().len() == 0 {
             loop {
                 line_buf.clear();
                 cursor.read_line(&mut &mut line_buf)?;
 
-                if let Some(remain) = line_buf.strip_prefix("+") {
-                    if remain == "" {
-                        return Ok(header);
-                    }
+                if line_buf.trim_start_matches("+").trim().len() == 0 {
+                    return Ok(header);
                 }
-                header.write_str(&line_buf);
+                header.write_str(&line_buf)?;
             }
         }
         Ok(header)
@@ -73,7 +78,7 @@ impl ZettelHeader {
 }
 
 impl Zettel {
-    pub fn from_md(path: &str) -> Result<Self, ZettelError> {
+    pub fn from_md(path: &Path) -> Result<Self, ZettelError> {
         let mut file = File::open(path)?;
         let mut buf = vec![];
         file.read_to_end(&mut buf)?;
@@ -82,7 +87,7 @@ impl Zettel {
         let mut content: String = String::new();
         cursor.read_to_string(&mut content)?;
         Ok(Zettel {
-            path: path.to_string(),
+            path: path.to_path_buf(),
             header,
             content,
             link_to: vec![],

@@ -1,7 +1,7 @@
 mod block;
 mod style;
 
-use gtk::{prelude::*, Adjustment, Scrollbar, ScrolledWindow};
+use gtk::{prelude::*, Adjustment, ScrolledWindow};
 use relm::connect;
 use relm::{Update, Widget};
 use relm_derive::Msg;

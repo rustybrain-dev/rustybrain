@@ -51,6 +51,8 @@ impl Display for ConfigError {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
+    repo: Repo,
+
     colors: Color,
 }
 
@@ -58,6 +60,10 @@ impl Config {
     pub fn from_str(s: &str) -> Result<Self, ConfigError> {
         let config = toml::from_str(s)?;
         Ok(config)
+    }
+
+    pub fn repo_path(&self) -> &str {
+        &self.repo.path
     }
 }
 
@@ -122,7 +128,15 @@ impl ConfigLoader {
     }
 }
 
+#[derive(Deserialize, Debug, Clone)]
+pub struct Repo {
+    path: String,
+}
+
 const DEFAULT_CONFIG_CONTENT: &'static str = r###"
+[repo]
+path = "RustyBrain"
+
 [colors]
 primary = "#546E7A"
 primary_text = "#FAFAFA"

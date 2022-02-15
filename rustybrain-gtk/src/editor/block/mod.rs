@@ -66,9 +66,9 @@ pub trait Blocking {
         buffer.delete_mark(self.right());
     }
 
-    fn cursor_in(&self, buffer: &TextBuffer) {}
+    fn cursor_in(&self, _buffer: &TextBuffer) {}
 
-    fn cursor_out(&self, buffer: &TextBuffer) {}
+    fn cursor_out(&self, _buffer: &TextBuffer) {}
 }
 
 pub enum Block {

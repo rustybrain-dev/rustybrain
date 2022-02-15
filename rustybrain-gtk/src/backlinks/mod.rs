@@ -22,7 +22,10 @@ impl Update for Backlinks {
 
     type Msg = Msg;
 
-    fn model(relm: &relm::Relm<Self>, param: Self::ModelParam) -> Self::Model {
+    fn model(
+        _relm: &relm::Relm<Self>,
+        _param: Self::ModelParam,
+    ) -> Self::Model {
         Model {}
     }
 
@@ -38,7 +41,7 @@ impl Widget for Backlinks {
         self.window.clone()
     }
 
-    fn view(relm: &relm::Relm<Self>, model: Self::Model) -> Self {
+    fn view(_relm: &relm::Relm<Self>, _model: Self::Model) -> Self {
         let window = ScrolledWindow::new::<Adjustment, Adjustment>(None, None);
         window.set_width_request(200);
         Backlinks { window }
