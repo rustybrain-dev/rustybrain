@@ -8,13 +8,16 @@ use gtk::StyleContext;
 use gtk::{Inhibit, Window, WindowType};
 use relm::{connect, Component, Relm, Update, Widget};
 use relm_derive::Msg;
+use rustybrain_core::config::Config;
 
 #[derive(Msg)]
 pub enum Msg {
     Quit,
 }
 
-pub struct Model {}
+pub struct Model {
+    config: Config,
+}
 
 pub struct Win {
     #[allow(dead_code)]
@@ -45,12 +48,12 @@ pub struct Win {
 impl Update for Win {
     type Model = Model;
 
-    type ModelParam = ();
+    type ModelParam = Config;
 
     type Msg = Msg;
 
     fn model(_relm: &Relm<Self>, _paramm: Self::ModelParam) -> Self::Model {
-        Model {}
+        Model { config: _paramm }
     }
 
     fn update(&mut self, event: Self::Msg) {
@@ -81,9 +84,12 @@ impl Widget for Win {
             .spacing(6)
             .build();
 
-        let listview = relm::init::<listview::ListView>(()).unwrap();
-        let editor = relm::init::<editor::Editor>(()).unwrap();
-        let backlinks = relm::init::<backlinks::Backlinks>(()).unwrap();
+        let listview =
+            relm::init::<listview::ListView>(model.config.clone()).unwrap();
+        let editor =
+            relm::init::<editor::Editor>(model.config.clone()).unwrap();
+        let backlinks =
+            relm::init::<backlinks::Backlinks>(model.config.clone()).unwrap();
         box_.pack_start(listview.widget(), false, true, 2);
         box_.pack_start(editor.widget(), true, true, 2);
         box_.pack_end(backlinks.widget(), false, true, 2);
@@ -123,6 +129,6 @@ const CSS: &'static str = r#"
     }
 "#;
 
-pub fn run() {
-    Win::run(()).unwrap()
+pub fn run(config: &Config) {
+    Win::run(config.clone()).unwrap()
 }

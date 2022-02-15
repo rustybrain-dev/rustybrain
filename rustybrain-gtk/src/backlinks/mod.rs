@@ -4,6 +4,7 @@ use gtk::ScrolledWindow;
 use relm::Update;
 use relm::Widget;
 use relm_derive::Msg;
+use rustybrain_core::config::Config;
 
 pub struct Model {}
 
@@ -17,7 +18,7 @@ pub struct Backlinks {
 impl Update for Backlinks {
     type Model = Model;
 
-    type ModelParam = ();
+    type ModelParam = Config;
 
     type Msg = Msg;
 

@@ -5,6 +5,7 @@ use gtk::{prelude::*, Adjustment, Scrollbar, ScrolledWindow};
 use relm::connect;
 use relm::{Update, Widget};
 use relm_derive::Msg;
+use rustybrain_core::config::Config;
 use rustybrain_core::md::TreeCursor;
 use rustybrain_core::md::{Node, Tree};
 
@@ -150,7 +151,7 @@ impl Editor {
 impl Update for Editor {
     type Model = Model;
 
-    type ModelParam = ();
+    type ModelParam = Config;
 
     type Msg = Msg;
 

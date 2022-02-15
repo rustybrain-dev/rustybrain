@@ -1,5 +1,6 @@
 use std::env::var;
-use std::error::Error;
+use std::fmt::Display;
+use std::fmt::Error;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
@@ -32,7 +33,23 @@ impl From<FromUtf8Error> for ConfigError {
     }
 }
 
-#[derive(Deserialize, Debug)]
+impl From<ConfigError> for String {
+    fn from(c: ConfigError) -> Self {
+        format!("{}", c)
+    }
+}
+
+impl Display for ConfigError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ConfigError::IOError(e) => e.fmt(f),
+            ConfigError::ParseError(e) => e.fmt(f),
+            ConfigError::CodecError(e) => e.fmt(f),
+        }
+    }
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct Config {
     colors: Color,
 }
@@ -106,7 +123,6 @@ impl ConfigLoader {
 }
 
 const DEFAULT_CONFIG_CONTENT: &'static str = r###"
-
 [colors]
 primary = "#546E7A"
 primary_text = "#FAFAFA"
@@ -149,7 +165,7 @@ green = "#66BB6A"
 green1 = "#558B2F"
 "###;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Color {
     primary: String,
     primary_light: String,

@@ -703,6 +703,7 @@ name = "rustybrain"
 version = "0.1.0"
 dependencies = [
  "color-eyre",
+ "rustybrain-core",
  "rustybrain-gtk",
 ]
 
