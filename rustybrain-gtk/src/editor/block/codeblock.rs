@@ -26,7 +26,6 @@ impl Blocking for Codeblock {
 
         Codeblock {
             content,
-
             left,
             right,
         }
@@ -82,15 +81,17 @@ impl Blocking for Codeblock {
 impl Codeblock {
     fn begin_line(&self, buffer: &gtk::TextBuffer) -> (TextIter, TextIter) {
         let start = buffer.iter_at_mark(self.left());
-        let end = buffer
-            .iter_at_offset(buffer.iter_at_line(start.line() + 1).offset() - 1);
+        let end = buffer.iter_at_offset(
+            buffer.iter_at_line(start.line() + 1).unwrap().offset() - 1,
+        );
         (start, end)
     }
 
     fn end_line(&self, buffer: &gtk::TextBuffer) -> (TextIter, TextIter) {
         let end = buffer.iter_at_mark(self.right());
-        let start =
-            buffer.iter_at_offset(buffer.iter_at_line(end.line() - 1).offset());
+        let start = buffer.iter_at_offset(
+            buffer.iter_at_line(end.line() - 1).unwrap().offset(),
+        );
         (start, end)
     }
 

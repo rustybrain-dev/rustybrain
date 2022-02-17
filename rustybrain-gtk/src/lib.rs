@@ -3,123 +3,116 @@ mod editor;
 mod listview;
 
 use gtk::prelude::*;
+use gtk::ApplicationWindow;
 use gtk::CssProvider;
 use gtk::StyleContext;
-use gtk::{Inhibit, Window, WindowType};
-use relm::{connect, Component, Relm, Update, Widget};
-use relm_derive::Msg;
+use relm4::AppUpdate;
+use relm4::Components;
+use relm4::Model;
+use relm4::RelmApp;
+use relm4::RelmComponent;
+use relm4::Widgets;
 use rustybrain_core::config::Config;
 
-#[derive(Msg)]
 pub enum Msg {
     Quit,
 }
 
-pub struct Model {
+pub struct AppModel {
     config: Config,
 }
 
-pub struct Win {
-    #[allow(dead_code)]
-    model: Model,
-    window: Window,
+pub struct AppComponents {
+    editor: RelmComponent<editor::Model, AppModel>,
+    listview: RelmComponent<listview::Model, AppModel>,
+    backlinks: RelmComponent<backlinks::Model, AppModel>,
+}
+
+impl Components<AppModel> for AppComponents {
+    fn init_components(
+        parent_model: &AppModel,
+        parent_sender: relm4::Sender<Msg>,
+    ) -> Self {
+        AppComponents {
+            editor: RelmComponent::new(parent_model, parent_sender.clone()),
+            listview: RelmComponent::new(parent_model, parent_sender.clone()),
+            backlinks: RelmComponent::new(parent_model, parent_sender),
+        }
+    }
+
+    fn connect_parent(&mut self, _parent_widgets: &AppWidgets) {}
+}
+
+pub struct AppWidgets {
+    window: ApplicationWindow,
 
     #[allow(dead_code)]
     box_: gtk::Box,
-
-    // Hold editor to avoid it been dropped, otherwise that will cause panic.
-    // See also: https://github.com/antoyo/relm/issues/278
-    #[allow(dead_code)]
-    editor: Component<editor::Editor>,
-
-    #[allow(dead_code)]
-    listview: Component<listview::ListView>,
-
-    #[allow(dead_code)]
-    backlinks: Component<backlinks::Backlinks>,
-
-    #[allow(dead_code)]
-    css_provider: CssProvider,
-
-    #[allow(dead_code)]
-    css_context: StyleContext,
 }
 
-impl Update for Win {
-    type Model = Model;
-
-    type ModelParam = Config;
-
+impl Model for AppModel {
     type Msg = Msg;
 
-    fn model(_relm: &Relm<Self>, _paramm: Self::ModelParam) -> Self::Model {
-        Model { config: _paramm }
-    }
+    type Widgets = AppWidgets;
 
-    fn update(&mut self, event: Self::Msg) {
-        match event {
-            Msg::Quit => gtk::main_quit(),
+    type Components = AppComponents;
+}
+
+impl AppUpdate for AppModel {
+    fn update(
+        &mut self,
+        msg: Self::Msg,
+        _components: &Self::Components,
+        _sender: relm4::Sender<Self::Msg>,
+    ) -> bool {
+        match msg {
+            Msg::Quit => todo!(),
         }
     }
 }
 
-impl Widget for Win {
-    type Root = Window;
+impl Widgets<AppModel, ()> for AppWidgets {
+    type Root = ApplicationWindow;
 
-    fn root(&self) -> Self::Root {
-        self.window.clone()
-    }
-
-    fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
-        let css_provider = CssProvider::new();
-        css_provider.load_from_data(CSS.as_bytes()).unwrap();
-        let context = gtk::StyleContext::new();
-        context.add_provider(
-            &css_provider,
-            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
-        );
-
+    fn init_view(
+        _model: &AppModel,
+        components: &AppComponents,
+        _sender: relm4::Sender<Msg>,
+    ) -> Self {
         let box_ = gtk::Box::builder()
             .orientation(gtk::Orientation::Horizontal)
             .spacing(6)
+            .hexpand(true)
+            .vexpand(true)
             .build();
 
-        let listview =
-            relm::init::<listview::ListView>(model.config.clone()).unwrap();
-        let editor =
-            relm::init::<editor::Editor>(model.config.clone()).unwrap();
-        let backlinks =
-            relm::init::<backlinks::Backlinks>(model.config.clone()).unwrap();
-        box_.pack_start(listview.widget(), false, true, 2);
-        box_.pack_start(editor.widget(), true, true, 2);
-        box_.pack_end(backlinks.widget(), false, true, 2);
+        box_.append(components.listview.root_widget());
+        box_.append(components.editor.root_widget());
+        box_.append(components.backlinks.root_widget());
 
-        let window = Window::new(WindowType::Toplevel);
-        window.set_title("Rusty Brain -- To Help You Build Your Second Brain!");
-        connect!(
-            relm,
-            window,
-            connect_delete_event(_, _),
-            return (Some(Msg::Quit), Inhibit(false))
-        );
-        window.set_position(gtk::WindowPosition::Mouse);
+        let window = ApplicationWindow::builder().build();
+        window.set_title(Some(
+            "Rusty Brain -- To Help You Build Your Second Brain!",
+        ));
         window.set_child(Some(&box_));
-        window.resize(1200, 600);
-        window.show_all();
+        window.set_default_size(1200, 800);
 
-        Win {
-            model,
-            window,
-            box_,
-            editor,
-            listview,
-            backlinks,
-            css_provider,
-            css_context: context,
-        }
+        AppWidgets { window, box_ }
     }
 
-    fn init_view(&mut self) {}
+    fn root_widget(&self) -> Self::Root {
+        self.window.clone()
+    }
+
+    fn view(&mut self, _model: &AppModel, _sender: relm4::Sender<Msg>) {
+        let provider = CssProvider::new();
+        provider.load_from_data(CSS.as_bytes());
+        StyleContext::add_provider_for_display(
+            &self.root_widget().display(),
+            &provider,
+            100,
+        );
+    }
 }
 
 const CSS: &'static str = r#"
@@ -130,5 +123,9 @@ const CSS: &'static str = r#"
 "#;
 
 pub fn run(config: &Config) {
-    Win::run(config.clone()).unwrap()
+    let model = AppModel {
+        config: config.clone(),
+    };
+    let app = RelmApp::new(model);
+    app.run();
 }

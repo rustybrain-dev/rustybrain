@@ -28,5 +28,5 @@ A Desktop Application that Implemented Zettelkasten to Help You Build Your Secon
 ### macOS
 
 ``` shell
-brew install gtk+3
+brew install gtk+4
 ```

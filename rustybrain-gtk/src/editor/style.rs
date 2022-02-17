@@ -1,5 +1,4 @@
 use gtk::pango::FontDescription;
-use gtk::prelude::*;
 use gtk::TextTag;
 use gtk::TextTagTable;
 

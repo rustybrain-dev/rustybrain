@@ -33,7 +33,7 @@ impl From<std::fmt::Error> for ZettelError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Zettel {
     path: PathBuf,
     header: ZettelHeader,
@@ -41,7 +41,7 @@ pub struct Zettel {
     link_to: Vec<String>,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ZettelHeader {
     title: String,
 
