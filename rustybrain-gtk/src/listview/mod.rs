@@ -2,7 +2,9 @@ mod item;
 
 use gtk::prelude::*;
 use gtk::ListBox;
+use gtk::ListBoxRow;
 use gtk::ScrolledWindow;
+use relm4::send;
 use relm4::AppUpdate;
 use relm4::ComponentUpdate;
 use relm4::Components;
@@ -16,7 +18,10 @@ pub struct Model {
     config: Config,
 }
 
-pub enum Msg {}
+pub enum Msg {
+    RowSelected(ListBoxRow),
+    ZettelSelected(Zettel),
+}
 
 pub struct ListView {
     window: ScrolledWindow,
@@ -77,9 +82,9 @@ impl relm4::Model for Model {
 impl AppUpdate for Model {
     fn update(
         &mut self,
-        msg: Self::Msg,
-        components: &Self::Components,
-        sender: relm4::Sender<Self::Msg>,
+        _msg: Self::Msg,
+        _components: &Self::Components,
+        _sender: relm4::Sender<Self::Msg>,
     ) -> bool {
         true
     }
@@ -96,9 +101,24 @@ impl ComponentUpdate<super::AppModel> for Model {
         &mut self,
         msg: Self::Msg,
         components: &Self::Components,
-        sender: relm4::Sender<Self::Msg>,
+        _sender: relm4::Sender<Self::Msg>,
         parent_sender: relm4::Sender<super::Msg>,
     ) {
+        match msg {
+            Msg::RowSelected(row) => {
+                for item in &components.rows {
+                    if item.root_widget() == &row {
+                        send!(
+                            item.sender(),
+                            crate::listview::item::Msg::Activated
+                        );
+                    }
+                }
+            }
+            Msg::ZettelSelected(zettel) => {
+                send!(parent_sender, super::Msg::ChangeZettel(zettel))
+            }
+        }
     }
 }
 
@@ -106,15 +126,21 @@ impl Widgets<Model, super::AppModel> for ListView {
     type Root = gtk::ScrolledWindow;
 
     fn init_view(
-        model: &Model,
+        _model: &Model,
         components: &ListViewComponents,
         sender: relm4::Sender<Msg>,
     ) -> Self {
         let view = ListBox::new();
-        let window = ScrolledWindow::new();
         for item in &components.rows {
             view.append(item.root_widget());
         }
+        view.connect_row_selected(move |_, row| {
+            if let Some(r) = row {
+                send!(sender, Msg::RowSelected(r.clone()))
+            }
+        });
+
+        let window = ScrolledWindow::new();
         window.set_child(Some(&view));
         window.set_width_request(200);
         ListView { window, view }
@@ -124,5 +150,5 @@ impl Widgets<Model, super::AppModel> for ListView {
         self.window.clone()
     }
 
-    fn view(&mut self, model: &Model, sender: relm4::Sender<Msg>) {}
+    fn view(&mut self, _model: &Model, _sender: relm4::Sender<Msg>) {}
 }

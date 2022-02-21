@@ -1,6 +1,5 @@
 use std::env::var;
 use std::fmt::Display;
-use std::fmt::Error;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
@@ -53,6 +52,7 @@ impl Display for ConfigError {
 pub struct Config {
     repo: Repo,
 
+    #[allow(dead_code)]
     colors: Color,
 }
 
@@ -68,6 +68,7 @@ impl Config {
 }
 
 pub struct ConfigLoader {
+    #[allow(dead_code)]
     home: PathBuf,
     dir: PathBuf,
     path: PathBuf,
@@ -181,29 +182,50 @@ green1 = "#558B2F"
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Color {
+    #[allow(dead_code)]
     primary: String,
+    #[allow(dead_code)]
     primary_light: String,
+    #[allow(dead_code)]
     primary_dark: String,
+    #[allow(dead_code)]
     primary_text: String,
 
+    #[allow(dead_code)]
     secondary: String,
+    #[allow(dead_code)]
     secondary_light: String,
+    #[allow(dead_code)]
     secondary_dark: String,
+    #[allow(dead_code)]
     secondary_text: String,
 
+    #[allow(dead_code)]
     foreground: String,
+    #[allow(dead_code)]
     background: String,
 
+    #[allow(dead_code)]
     yellow: String,
+    #[allow(dead_code)]
     brown: String,
+    #[allow(dead_code)]
     orange: String,
+    #[allow(dead_code)]
     red: String,
+    #[allow(dead_code)]
     pink: String,
+    #[allow(dead_code)]
     purple: String,
+    #[allow(dead_code)]
     blue: String,
+    #[allow(dead_code)]
     indigo: String,
+    #[allow(dead_code)]
     cyan: String,
+    #[allow(dead_code)]
     teal: String,
+    #[allow(dead_code)]
     green: String,
 }
 

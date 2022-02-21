@@ -2,7 +2,7 @@ use std::fs::{self, DirEntry, ReadDir};
 
 use crate::{
     config::Config,
-    zettel::{self, Zettel, ZettelError},
+    zettel::{Zettel, ZettelError},
 };
 
 #[derive(Debug)]

@@ -6,11 +6,20 @@ use relm4::{send, AppUpdate, ComponentUpdate, Widgets};
 use rustybrain_core::config::Config;
 use rustybrain_core::md::TreeCursor;
 use rustybrain_core::md::{Node, Tree};
+use rustybrain_core::zettel::Zettel;
 
 use self::block::Blocking;
 
+pub enum Msg {
+    Open(Zettel),
+    Changed,
+    Cursor,
+}
+
 pub struct Model {
     tree: Option<Tree>,
+
+    #[allow(dead_code)]
     config: Config,
     buffer: gtk::TextBuffer,
 
@@ -34,18 +43,13 @@ impl AppUpdate for Model {
         _components: &Self::Components,
         _sender: relm4::Sender<Self::Msg>,
     ) -> bool {
-        println!("update");
         match msg {
             Msg::Changed => self.on_buffer_changed(),
             Msg::Cursor => self.on_cursor_notify(),
+            Msg::Open(z) => self.open_zettel(z),
         };
         true
     }
-}
-
-pub enum Msg {
-    Changed,
-    Cursor,
 }
 
 pub struct Editor {
@@ -53,6 +57,10 @@ pub struct Editor {
 }
 
 impl Model {
+    fn open_zettel(&mut self, z: Zettel) {
+        self.buffer.set_text(z.content());
+    }
+
     fn on_buffer_changed(&mut self) {
         while let Some(blk) = self.blocks.pop() {
             blk.remove_tag(&self.buffer);
@@ -125,8 +133,6 @@ impl ComponentUpdate<super::AppModel> for Model {
             .tag_table(&table)
             .build();
 
-        buffer.set_text(CONTENT);
-
         let mut model = Model {
             tree: None,
             config: parent_model.config.clone(),
@@ -148,6 +154,7 @@ impl ComponentUpdate<super::AppModel> for Model {
         match msg {
             Msg::Changed => self.on_buffer_changed(),
             Msg::Cursor => self.on_cursor_notify(),
+            Msg::Open(z) => self.open_zettel(z),
         }
     }
 }
@@ -193,56 +200,5 @@ impl Widgets<Model, super::AppModel> for Editor {
         Editor { window }
     }
 
-    fn view(&mut self, model: &Model, sender: relm4::Sender<Msg>) {}
+    fn view(&mut self, _model: &Model, _sender: relm4::Sender<Msg>) {}
 }
-
-const CONTENT: &'static str = r#"# tree-sitter-markdown
-
-Markdown ([CommonMark Spec v0.29-gfm](https://github.github.com/gfm/)) grammar
-for [tree-sitter](https://github.com/tree-sitter/tree-sitter)
-
-_Note: This grammar is based on the assumption that
-**[link label matchings](https://github.github.com/gfm/#matches) will never fail**
-since reference links can come before their reference definitions,
-which causes it hard to do incrementally parsing without this assumption._
-
-[Changelog](https://github.com/ikatyang/tree-sitter-markdown/blob/master/CHANGELOG.md)
-
-## Install
-
-```sh
-npm install tree-sitter-markdown tree-sitter
-```
-
-## Usage
-
-```js
-const Parser = require("tree-sitter");
-const Markdown = require("tree-sitter-markdown");
-
-const parser = new Parser();
-parser.setLanguage(Markdown);
-
-const sourceCode = `
-# foo
--     bar
-  baz
-`;
-
-const tree = parser.parse(sourceCode);
-console.log(tree.rootNode.toString());
-// (document
-//   (atx_heading
-//     (atx_heading_marker)
-//     (heading_content))
-//   (tight_list
-//     (list_item
-//       (list_marker)
-//       (indented_code_block)
-//       (paragraph))))
-```
-
-## License
-
-MIT © [Ika](https://github.com/ikatyang)
-"#;

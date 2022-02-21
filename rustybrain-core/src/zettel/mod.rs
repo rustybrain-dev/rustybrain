@@ -6,7 +6,6 @@ use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
-use tree_sitter::Tree;
 
 #[derive(Debug)]
 pub enum ZettelError {
@@ -38,6 +37,7 @@ pub struct Zettel {
     path: PathBuf,
     header: ZettelHeader,
     content: String,
+    #[allow(dead_code)]
     link_to: Vec<String>,
 }
 
@@ -45,6 +45,7 @@ pub struct Zettel {
 pub struct ZettelHeader {
     title: String,
 
+    #[allow(dead_code)]
     #[serde(skip)]
     raw: String,
 }

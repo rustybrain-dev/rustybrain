@@ -1,8 +1,10 @@
 use gtk::{prelude::*, Label, ListBoxRow};
-use relm4::{AppUpdate, ComponentUpdate};
+use relm4::{send, AppUpdate, ComponentUpdate};
 use rustybrain_core::zettel::Zettel;
 
-pub enum Msg {}
+pub enum Msg {
+    Activated,
+}
 
 pub struct Model {
     zettel: Zettel,
@@ -18,9 +20,9 @@ pub struct Item {
 impl AppUpdate for Model {
     fn update(
         &mut self,
-        msg: Self::Msg,
-        components: &Self::Components,
-        sender: relm4::Sender<Self::Msg>,
+        _msg: Self::Msg,
+        _components: &Self::Components,
+        _sender: relm4::Sender<Self::Msg>,
     ) -> bool {
         true
     }
@@ -44,10 +46,16 @@ impl ComponentUpdate<super::RowModel> for Model {
     fn update(
         &mut self,
         msg: Self::Msg,
-        components: &Self::Components,
-        sender: relm4::Sender<Self::Msg>,
+        _components: &Self::Components,
+        _sender: relm4::Sender<Self::Msg>,
         parent_sender: relm4::Sender<super::Msg>,
     ) {
+        match msg {
+            Msg::Activated => send!(
+                parent_sender,
+                super::Msg::ZettelSelected(self.zettel.clone())
+            ),
+        }
     }
 }
 
@@ -57,7 +65,7 @@ impl relm4::Widgets<Model, super::RowModel> for Item {
     fn init_view(
         model: &Model,
         _components: &(),
-        sender: relm4::Sender<Msg>,
+        _sender: relm4::Sender<Msg>,
     ) -> Self {
         let row = ListBoxRow::new();
         let label = Label::new(Some(model.zettel.title()));
@@ -69,5 +77,5 @@ impl relm4::Widgets<Model, super::RowModel> for Item {
         self.row.clone()
     }
 
-    fn view(&mut self, model: &Model, sender: relm4::Sender<Msg>) {}
+    fn view(&mut self, _model: &Model, _sender: relm4::Sender<Msg>) {}
 }

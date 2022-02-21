@@ -8,6 +8,7 @@ use rustybrain_core::config::Config;
 use crate::AppModel;
 
 pub struct Model {
+    #[allow(dead_code)]
     config: Config,
 }
 
@@ -28,9 +29,9 @@ impl relm4::Model for Model {
 impl AppUpdate for Model {
     fn update(
         &mut self,
-        msg: Self::Msg,
-        components: &Self::Components,
-        sender: relm4::Sender<Self::Msg>,
+        _msg: Self::Msg,
+        _components: &Self::Components,
+        _sender: relm4::Sender<Self::Msg>,
     ) -> bool {
         true
     }
@@ -45,10 +46,10 @@ impl ComponentUpdate<AppModel> for Model {
 
     fn update(
         &mut self,
-        msg: Self::Msg,
-        components: &Self::Components,
-        sender: relm4::Sender<Self::Msg>,
-        parent_sender: relm4::Sender<super::Msg>,
+        _msg: Self::Msg,
+        _components: &Self::Components,
+        _sender: relm4::Sender<Self::Msg>,
+        _parent_sender: relm4::Sender<super::Msg>,
     ) {
     }
 }
@@ -57,9 +58,9 @@ impl Widgets<Model, super::AppModel> for Backlinks {
     type Root = gtk::ScrolledWindow;
 
     fn init_view(
-        model: &Model,
+        _model: &Model,
         _components: &(),
-        sender: relm4::Sender<Msg>,
+        _sender: relm4::Sender<Msg>,
     ) -> Self {
         let window = ScrolledWindow::new();
         window.set_width_request(200);
@@ -70,5 +71,5 @@ impl Widgets<Model, super::AppModel> for Backlinks {
         self.window.clone()
     }
 
-    fn view(&mut self, model: &Model, sender: relm4::Sender<Msg>) {}
+    fn view(&mut self, _model: &Model, _sender: relm4::Sender<Msg>) {}
 }

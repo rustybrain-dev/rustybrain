@@ -6,6 +6,7 @@ use gtk::prelude::*;
 use gtk::ApplicationWindow;
 use gtk::CssProvider;
 use gtk::StyleContext;
+use relm4::send;
 use relm4::AppUpdate;
 use relm4::Components;
 use relm4::Model;
@@ -13,9 +14,11 @@ use relm4::RelmApp;
 use relm4::RelmComponent;
 use relm4::Widgets;
 use rustybrain_core::config::Config;
+use rustybrain_core::zettel::Zettel;
 
 pub enum Msg {
     Quit,
+    ChangeZettel(Zettel),
 }
 
 pub struct AppModel {
@@ -62,12 +65,16 @@ impl AppUpdate for AppModel {
     fn update(
         &mut self,
         msg: Self::Msg,
-        _components: &Self::Components,
+        components: &Self::Components,
         _sender: relm4::Sender<Self::Msg>,
     ) -> bool {
         match msg {
             Msg::Quit => todo!(),
+            Msg::ChangeZettel(z) => {
+                send!(components.editor.sender(), editor::Msg::Open(z))
+            }
         }
+        true
     }
 }
 

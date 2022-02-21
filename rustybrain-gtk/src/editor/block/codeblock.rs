@@ -79,36 +79,46 @@ impl Blocking for Codeblock {
 }
 
 impl Codeblock {
-    fn begin_line(&self, buffer: &gtk::TextBuffer) -> (TextIter, TextIter) {
+    fn begin_line(
+        &self,
+        buffer: &gtk::TextBuffer,
+    ) -> Option<(TextIter, TextIter)> {
         let start = buffer.iter_at_mark(self.left());
-        let end = buffer.iter_at_offset(
-            buffer.iter_at_line(start.line() + 1).unwrap().offset() - 1,
-        );
-        (start, end)
+        if let Some(line) = buffer.iter_at_line(start.line() + 1) {
+            let end = buffer.iter_at_offset(line.offset() - 1);
+            return Some((start, end));
+        }
+        None
     }
 
-    fn end_line(&self, buffer: &gtk::TextBuffer) -> (TextIter, TextIter) {
+    fn end_line(
+        &self,
+        buffer: &gtk::TextBuffer,
+    ) -> Option<(TextIter, TextIter)> {
         let end = buffer.iter_at_mark(self.right());
-        let start = buffer.iter_at_offset(
-            buffer.iter_at_line(end.line() - 1).unwrap().offset(),
-        );
-        (start, end)
+        if let Some(line) = buffer.iter_at_line(end.line() - 1) {
+            let start = buffer.iter_at_offset(line.offset());
+            return Some((start, end));
+        }
+        None
     }
 
     fn hide_begin_end_line(&self, buffer: &gtk::TextBuffer) {
-        let (bl_start, bl_end) = self.begin_line(buffer);
-        let (el_start, el_end) = self.end_line(buffer);
-
-        buffer.apply_tag_by_name("hidden", &bl_start, &bl_end);
-        buffer.apply_tag_by_name("hidden", &el_start, &el_end);
+        if let Some((bl_start, bl_end)) = self.begin_line(buffer) {
+            buffer.apply_tag_by_name("hidden", &bl_start, &bl_end);
+        }
+        if let Some((el_start, el_end)) = self.end_line(buffer) {
+            buffer.apply_tag_by_name("hidden", &el_start, &el_end);
+        }
     }
 
     fn show_begin_end_line(&self, buffer: &gtk::TextBuffer) {
-        let (bl_start, bl_end) = self.begin_line(buffer);
-        let (el_start, el_end) = self.end_line(buffer);
-
-        buffer.remove_tag_by_name("hidden", &bl_start, &bl_end);
-        buffer.remove_tag_by_name("hidden", &el_start, &el_end);
+        if let Some((bl_start, bl_end)) = self.begin_line(buffer) {
+            buffer.remove_tag_by_name("hidden", &bl_start, &bl_end);
+        }
+        if let Some((el_start, el_end)) = self.end_line(buffer) {
+            buffer.remove_tag_by_name("hidden", &el_start, &el_end);
+        }
     }
 }
 
