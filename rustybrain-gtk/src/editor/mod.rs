@@ -176,7 +176,11 @@ impl Widgets<Model, super::AppModel> for Editor {
         _components: &(),
         sender: relm4::Sender<Msg>,
     ) -> Self {
-        let box_ = gtk::Box::new(gtk::Orientation::Vertical, 10);
+        let box_ = gtk::Box::builder()
+            .orientation(gtk::Orientation::Vertical)
+            .spacing(10)
+            .margin_end(10)
+            .build();
         let entry = gtk::Entry::builder()
             .hexpand(true)
             .vexpand(false)
@@ -194,21 +198,18 @@ impl Widgets<Model, super::AppModel> for Editor {
         });
         let view = gtk::TextView::builder()
             .buffer(&model.buffer)
-            .width_request(800)
-            .height_request(600)
             .vexpand(true)
             .hexpand(true)
-            .has_tooltip(true)
             .wrap_mode(gtk::WrapMode::Char)
             .build();
         box_.append(&view);
-        box_.set_hexpand(true);
-        box_.set_vexpand(true);
 
-        let window = ScrolledWindow::new();
-        window.set_child(Some(&box_));
-        window.set_hexpand(true);
-        window.set_vexpand(true);
+        let window = ScrolledWindow::builder()
+            .hexpand(true)
+            .vexpand(true)
+            .child(&box_)
+            .margin_end(10)
+            .build();
 
         Editor {
             window,

@@ -84,11 +84,10 @@ impl Codeblock {
         buffer: &gtk::TextBuffer,
     ) -> Option<(TextIter, TextIter)> {
         let start = buffer.iter_at_mark(self.left());
-        if let Some(line) = buffer.iter_at_line(start.line() + 1) {
-            let end = buffer.iter_at_offset(line.offset() - 1);
-            return Some((start, end));
-        }
-        None
+        let mut end = start.clone();
+        end.forward_to_line_end();
+
+        Some((start, end))
     }
 
     fn end_line(
@@ -96,11 +95,10 @@ impl Codeblock {
         buffer: &gtk::TextBuffer,
     ) -> Option<(TextIter, TextIter)> {
         let end = buffer.iter_at_mark(self.right());
-        if let Some(line) = buffer.iter_at_line(end.line() - 1) {
-            let start = buffer.iter_at_offset(line.offset());
-            return Some((start, end));
-        }
-        None
+        let mut start = end.clone();
+        start.backward_line();
+        start.forward_to_line_end();
+        Some((start, end))
     }
 
     fn hide_begin_end_line(&self, buffer: &gtk::TextBuffer) {

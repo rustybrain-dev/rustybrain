@@ -18,7 +18,7 @@ pub trait Blocking {
         let left = TextMark::builder().left_gravity(false).build();
         let right = TextMark::builder().left_gravity(false).build();
         let start = buffer.iter_at_offset(node.start_byte() as i32);
-        let end = buffer.iter_at_offset(node.end_byte() as i32 + 1);
+        let end = buffer.iter_at_offset(node.end_byte() as i32);
         buffer.add_mark(&left, &start);
         buffer.add_mark(&right, &end);
         (left, right)
