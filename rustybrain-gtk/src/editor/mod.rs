@@ -22,6 +22,7 @@ pub struct Model {
     #[allow(dead_code)]
     config: Config,
     buffer: gtk::TextBuffer,
+    title: gtk::EntryBuffer,
 
     #[allow(dead_code)]
     table: gtk::TextTagTable,
@@ -54,11 +55,13 @@ impl AppUpdate for Model {
 
 pub struct Editor {
     window: gtk::ScrolledWindow,
+    title: gtk::Entry,
 }
 
 impl Model {
     fn open_zettel(&mut self, z: Zettel) {
         self.buffer.set_text(z.content());
+        self.title.set_text(z.title());
     }
 
     fn on_buffer_changed(&mut self) {
@@ -132,12 +135,14 @@ impl ComponentUpdate<super::AppModel> for Model {
             .enable_undo(true)
             .tag_table(&table)
             .build();
+        let title = gtk::EntryBuffer::builder().build();
 
         let mut model = Model {
             tree: None,
             config: parent_model.config.clone(),
             blocks: vec![],
             buffer,
+            title,
             table,
         };
         model.on_buffer_changed();
@@ -172,6 +177,14 @@ impl Widgets<Model, super::AppModel> for Editor {
         sender: relm4::Sender<Msg>,
     ) -> Self {
         let box_ = gtk::Box::new(gtk::Orientation::Vertical, 10);
+        let entry = gtk::Entry::builder()
+            .hexpand(true)
+            .vexpand(false)
+            .placeholder_text("Title")
+            .buffer(&model.title)
+            .build();
+        box_.append(&entry);
+
         let s = sender.clone();
         model
             .buffer
@@ -197,8 +210,17 @@ impl Widgets<Model, super::AppModel> for Editor {
         window.set_hexpand(true);
         window.set_vexpand(true);
 
-        Editor { window }
+        Editor {
+            window,
+            title: entry,
+        }
     }
 
-    fn view(&mut self, _model: &Model, _sender: relm4::Sender<Msg>) {}
+    fn view(&mut self, model: &Model, _sender: relm4::Sender<Msg>) {
+        if model.title.text() == "" {
+            self.title.set_placeholder_text(Some("Title"))
+        } else {
+            self.title.set_placeholder_text(None)
+        }
+    }
 }
