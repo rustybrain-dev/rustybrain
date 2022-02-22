@@ -23,7 +23,7 @@ A Desktop Application that Implemented Zettelkasten to Help You Build Your Secon
 5. Grid screen to show all notes into different columns by their networks.
 6. Cluster screen to show the notes network.
 
-## Install GTK+3
+## Install GTK+4
 
 ### macOS
 
