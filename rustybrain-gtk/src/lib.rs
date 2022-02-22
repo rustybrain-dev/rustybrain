@@ -123,9 +123,8 @@ impl Widgets<AppModel, ()> for AppWidgets {
 }
 
 const CSS: &'static str = r#"
- * {
-      background-color: red;
-      border-color: shade (mix (rgb (34, 255, 120), #fff, 0.5), 0.9);
+body {
+      background-color: #fefefe;
     }
 "#;
 
