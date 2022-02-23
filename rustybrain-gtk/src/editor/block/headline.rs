@@ -1,6 +1,7 @@
 use super::Blocking;
 use gtk::prelude::*;
 use gtk::TextBuffer;
+use gtk::TextIter;
 use gtk::TextMark;
 use rustybrain_core::md::Node;
 
@@ -116,6 +117,12 @@ impl Blocking for Marker {
 
     fn right(&self) -> &TextMark {
         &self.right
+    }
+
+    fn end(&self, buffer: &TextBuffer) -> TextIter {
+        let mut iter = buffer.iter_at_mark(self.right());
+        iter.forward_char();
+        iter
     }
 
     fn apply_tag(&self, buffer: &TextBuffer) {

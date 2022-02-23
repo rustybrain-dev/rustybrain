@@ -202,6 +202,7 @@ impl Widgets<Model, super::AppModel> for Editor {
             .buffer(&model.buffer)
             .vexpand(true)
             .hexpand(true)
+            .pixels_inside_wrap(10)
             .wrap_mode(gtk::WrapMode::Char)
             .build();
         box_.append(&view);

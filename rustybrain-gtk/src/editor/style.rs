@@ -77,7 +77,7 @@ impl Style {
         let fd = self.font_desc();
         let tag = TextTag::builder()
             .name("code-block")
-            .paragraph_background("#c7c7c7")
+            .paragraph_background("#E7ECF0")
             .font_desc(&fd)
             .build();
         self.table.add(&tag);
