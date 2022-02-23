@@ -15,6 +15,7 @@ use headline::Headline;
 
 use self::codeblock::Codeblock;
 use self::emphasis::Emphasis;
+use self::emphasis::StrongEmphasis;
 use self::link::Link;
 
 pub trait Blocking {
@@ -75,29 +76,78 @@ pub trait Blocking {
     fn cursor_out(&self, _buffer: &TextBuffer) {}
 
     fn hide_surround(&self, buffer: &gtk::TextBuffer) {
-        let b_end = self.start(buffer);
-        let mut b_start = b_end.clone();
-        b_start.backward_char();
-
-        let e_start = self.end(buffer);
-        let mut e_end = e_start.clone();
-        e_end.forward_char();
-
+        let ((b_start, b_end), (e_start, e_end)) = self.surround(buffer, 1);
         buffer.apply_tag_by_name("hidden", &b_start, &b_end);
         buffer.apply_tag_by_name("hidden", &e_start, &e_end);
     }
 
     fn show_surround(&self, buffer: &gtk::TextBuffer) {
+        let ((b_start, b_end), (e_start, e_end)) = self.surround(buffer, 1);
+        buffer.remove_tag_by_name("hidden", &b_start, &b_end);
+        buffer.remove_tag_by_name("hidden", &e_start, &e_end);
+    }
+
+    fn surround(
+        &self,
+        buffer: &gtk::TextBuffer,
+        n: i32,
+    ) -> ((TextIter, TextIter), (TextIter, TextIter)) {
         let b_end = self.start(buffer);
         let mut b_start = b_end.clone();
-        b_start.backward_char();
+        (0..n).for_each(|_| {
+            b_start.backward_char();
+        });
 
         let e_start = self.end(buffer);
         let mut e_end = e_start.clone();
-        e_end.forward_char();
+        (0..n).for_each(|_| {
+            e_end.forward_char();
+        });
+        ((b_end, b_start), (e_start, e_end))
+    }
 
+    fn hide_endpoint(&self, buffer: &gtk::TextBuffer) {
+        let ((b_start, b_end), (e_start, e_end)) = self.endpoint(buffer, 1);
+        buffer.apply_tag_by_name("hidden", &b_start, &b_end);
+        buffer.apply_tag_by_name("hidden", &e_start, &e_end);
+    }
+
+    fn show_endpoint(&self, buffer: &gtk::TextBuffer) {
+        let ((b_start, b_end), (e_start, e_end)) = self.endpoint(buffer, 1);
         buffer.remove_tag_by_name("hidden", &b_start, &b_end);
         buffer.remove_tag_by_name("hidden", &e_start, &e_end);
+    }
+
+    fn hide_endpoint_n(&self, buffer: &gtk::TextBuffer, n: i32) {
+        let ((b_start, b_end), (e_start, e_end)) = self.endpoint(buffer, n);
+        buffer.apply_tag_by_name("hidden", &b_start, &b_end);
+        buffer.apply_tag_by_name("hidden", &e_start, &e_end);
+    }
+
+    fn show_endpoint_n(&self, buffer: &gtk::TextBuffer, n: i32) {
+        let ((b_start, b_end), (e_start, e_end)) = self.endpoint(buffer, n);
+        buffer.remove_tag_by_name("hidden", &b_start, &b_end);
+        buffer.remove_tag_by_name("hidden", &e_start, &e_end);
+    }
+
+    fn endpoint(
+        &self,
+        buffer: &gtk::TextBuffer,
+        n: i32,
+    ) -> ((TextIter, TextIter), (TextIter, TextIter)) {
+        let b_start = self.start(buffer);
+        let mut b_end = b_start.clone();
+
+        (0..n).for_each(|_| {
+            b_end.forward_char();
+        });
+
+        let e_end = self.end(buffer);
+        let mut e_start = e_end.clone();
+        (0..n).for_each(|_| {
+            e_start.backward_char();
+        });
+        ((b_end, b_start), (e_start, e_end))
     }
 }
 
@@ -106,6 +156,7 @@ pub enum Block {
     Codeblock(Codeblock),
     Link(Link),
     Emphasis(Emphasis),
+    StrongEmphasis(StrongEmphasis),
     Anonymous(Anonymous),
 }
 
@@ -129,6 +180,11 @@ impl Blocking for Block {
         if node.kind() == "emphasis" {
             return Self::Emphasis(Emphasis::from_node(node, buffer));
         }
+        if node.kind() == "strong_emphasis" {
+            return Self::StrongEmphasis(StrongEmphasis::from_node(
+                node, buffer,
+            ));
+        }
 
         Self::Anonymous(Anonymous::from_node(node, buffer))
     }
@@ -140,6 +196,7 @@ impl Blocking for Block {
             Block::Codeblock(b) => b.start(buffer),
             Block::Link(l) => l.start(buffer),
             Block::Emphasis(e) => e.start(buffer),
+            Block::StrongEmphasis(s) => s.start(buffer),
         }
     }
 
@@ -150,6 +207,7 @@ impl Blocking for Block {
             Block::Codeblock(b) => b.end(buffer),
             Block::Link(l) => l.end(buffer),
             Block::Emphasis(e) => e.end(buffer),
+            Block::StrongEmphasis(s) => s.end(buffer),
         }
     }
 
@@ -160,6 +218,7 @@ impl Blocking for Block {
             Block::Codeblock(b) => b.left(),
             Block::Link(l) => l.left(),
             Block::Emphasis(e) => e.left(),
+            Block::StrongEmphasis(s) => s.left(),
         }
     }
 
@@ -170,6 +229,7 @@ impl Blocking for Block {
             Block::Codeblock(b) => b.right(),
             Block::Link(l) => l.right(),
             Block::Emphasis(e) => e.right(),
+            Block::StrongEmphasis(s) => s.right(),
         }
     }
 
@@ -180,6 +240,7 @@ impl Blocking for Block {
             Block::Codeblock(b) => b.apply_tag(buffer),
             Block::Link(l) => l.apply_tag(buffer),
             Block::Emphasis(e) => e.apply_tag(buffer),
+            Block::StrongEmphasis(s) => s.apply_tag(buffer),
         }
     }
 
@@ -190,6 +251,7 @@ impl Blocking for Block {
             Block::Codeblock(b) => b.umount(buffer),
             Block::Link(l) => l.umount(buffer),
             Block::Emphasis(e) => e.umount(buffer),
+            Block::StrongEmphasis(s) => s.umount(buffer),
         }
     }
 
@@ -200,6 +262,7 @@ impl Blocking for Block {
             Block::Codeblock(b) => b.remove_tag(buffer),
             Block::Link(l) => l.remove_tag(buffer),
             Block::Emphasis(e) => e.remove_tag(buffer),
+            Block::StrongEmphasis(e) => e.remove_tag(buffer),
         }
     }
 
@@ -210,6 +273,7 @@ impl Blocking for Block {
             Block::Anonymous(a) => a.cursor_in(buffer),
             Block::Link(l) => l.cursor_in(buffer),
             Block::Emphasis(e) => e.cursor_in(buffer),
+            Block::StrongEmphasis(s) => s.cursor_in(buffer),
         }
     }
 
@@ -220,6 +284,7 @@ impl Blocking for Block {
             Block::Anonymous(h) => h.cursor_out(buffer),
             Block::Link(l) => l.cursor_out(buffer),
             Block::Emphasis(e) => e.cursor_out(buffer),
+            Block::StrongEmphasis(s) => s.cursor_out(buffer),
         }
     }
 }

@@ -83,7 +83,12 @@ impl Style {
         self.table.add(&tag);
     }
 
-    fn fill_bold(&mut self) {}
+    fn fill_bold(&mut self) {
+        let mut fd = self.font_desc();
+        fd.set_weight(gtk::pango::Weight::Bold);
+        let tag = TextTag::builder().name("bold").font_desc(&fd).build();
+        self.table.add(&tag);
+    }
 
     fn fill_italic(&mut self) {
         let mut fd = self.font_desc();
