@@ -1,7 +1,7 @@
 mod block;
 mod style;
 
-use gtk::{prelude::*, ScrolledWindow};
+use gtk::{prelude::*, ScrolledWindow, TextMark};
 use relm4::{send, AppUpdate, ComponentUpdate, Widgets};
 use rustybrain_core::config::Config;
 use rustybrain_core::md::TreeCursor;
@@ -14,6 +14,7 @@ pub enum Msg {
     Open(Zettel),
     Changed,
     Cursor,
+    InsertText(TextMark, String),
 }
 
 pub struct Model {
@@ -23,6 +24,7 @@ pub struct Model {
     config: Config,
     buffer: gtk::TextBuffer,
     title: gtk::EntryBuffer,
+    view: gtk::TextView,
 
     #[allow(dead_code)]
     table: gtk::TextTagTable,
@@ -40,15 +42,10 @@ impl relm4::Model for Model {
 impl AppUpdate for Model {
     fn update(
         &mut self,
-        msg: Self::Msg,
+        _msg: Self::Msg,
         _components: &Self::Components,
         _sender: relm4::Sender<Self::Msg>,
     ) -> bool {
-        match msg {
-            Msg::Changed => self.on_buffer_changed(),
-            Msg::Cursor => self.on_cursor_notify(),
-            Msg::Open(z) => self.open_zettel(z),
-        };
         true
     }
 }
@@ -137,6 +134,14 @@ impl ComponentUpdate<super::AppModel> for Model {
             .build();
         let title = gtk::EntryBuffer::builder().build();
 
+        let view = gtk::TextView::builder()
+            .buffer(&buffer)
+            .vexpand(true)
+            .hexpand(true)
+            .pixels_inside_wrap(10)
+            .wrap_mode(gtk::WrapMode::Char)
+            .build();
+
         let mut model = Model {
             tree: None,
             config: parent_model.config.clone(),
@@ -144,6 +149,7 @@ impl ComponentUpdate<super::AppModel> for Model {
             buffer,
             title,
             table,
+            view,
         };
         model.on_buffer_changed();
         model
@@ -160,6 +166,15 @@ impl ComponentUpdate<super::AppModel> for Model {
             Msg::Changed => self.on_buffer_changed(),
             Msg::Cursor => self.on_cursor_notify(),
             Msg::Open(z) => self.open_zettel(z),
+            Msg::InsertText(m, s) => {
+                if s == "@" {
+                    let mut iter = self.buffer.iter_at_mark(&m);
+                    let anchor = self.buffer.create_child_anchor(&mut iter);
+                    let child =
+                        gtk::Label::builder().label("You Complete Me").build();
+                    self.view.add_child_at_anchor(&child, &anchor);
+                }
+            }
         }
     }
 }
@@ -190,22 +205,7 @@ impl Widgets<Model, super::AppModel> for Editor {
             .build();
 
         box_.append(&entry);
-
-        let s = sender.clone();
-        model
-            .buffer
-            .connect_changed(move |_| send!(s, Msg::Changed));
-        model.buffer.connect_cursor_position_notify(move |_| {
-            send!(sender.clone(), Msg::Cursor)
-        });
-        let view = gtk::TextView::builder()
-            .buffer(&model.buffer)
-            .vexpand(true)
-            .hexpand(true)
-            .pixels_inside_wrap(10)
-            .wrap_mode(gtk::WrapMode::Char)
-            .build();
-        box_.append(&view);
+        box_.append(&model.view);
 
         let window = ScrolledWindow::builder()
             .hexpand(true)
@@ -213,6 +213,23 @@ impl Widgets<Model, super::AppModel> for Editor {
             .child(&box_)
             .margin_end(10)
             .build();
+
+        let s = sender.clone();
+        model
+            .buffer
+            .connect_changed(move |_| send!(s, Msg::Changed));
+
+        let s = sender.clone();
+        model.buffer.connect_insert_text(move |b, i, t| {
+            send!(
+                s,
+                Msg::InsertText(b.create_mark(None, i, false), t.to_string())
+            )
+        });
+
+        model.buffer.connect_cursor_position_notify(move |_| {
+            send!(sender.clone(), Msg::Cursor)
+        });
 
         Editor {
             window,
