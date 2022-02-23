@@ -85,7 +85,12 @@ impl Style {
 
     fn fill_bold(&mut self) {}
 
-    fn fill_italic(&mut self) {}
+    fn fill_italic(&mut self) {
+        let mut fd = self.font_desc();
+        fd.set_style(gtk::pango::Style::Italic);
+        let tag = TextTag::builder().name("italic").font_desc(&fd).build();
+        self.table.add(&tag);
+    }
 
     fn fill_strikethrough(&mut self) {}
 

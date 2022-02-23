@@ -19,32 +19,6 @@ pub struct LinkDest {
     right: TextMark,
 }
 
-fn hide_surround(block: &impl Blocking, buffer: &gtk::TextBuffer) {
-    let b_end = block.start(buffer);
-    let mut b_start = b_end.clone();
-    b_start.backward_char();
-
-    let e_start = block.end(buffer);
-    let mut e_end = e_start.clone();
-    e_end.forward_char();
-
-    buffer.apply_tag_by_name("hidden", &b_start, &b_end);
-    buffer.apply_tag_by_name("hidden", &e_start, &e_end);
-}
-
-fn show_surround(block: &impl Blocking, buffer: &gtk::TextBuffer) {
-    let b_end = block.start(buffer);
-    let mut b_start = b_end.clone();
-    b_start.backward_char();
-
-    let e_start = block.end(buffer);
-    let mut e_end = e_start.clone();
-    e_end.forward_char();
-
-    buffer.remove_tag_by_name("hidden", &b_start, &b_end);
-    buffer.remove_tag_by_name("hidden", &e_start, &e_end);
-}
-
 impl Blocking for Link {
     fn from_node(
         node: &rustybrain_core::md::Node,
@@ -152,11 +126,11 @@ impl Blocking for LinkText {
     }
 
     fn cursor_in(&self, buffer: &gtk::TextBuffer) {
-        show_surround(self, buffer);
+        self.show_surround(buffer);
     }
 
     fn cursor_out(&self, buffer: &gtk::TextBuffer) {
-        hide_surround(self, buffer);
+        self.hide_surround(buffer);
     }
 }
 

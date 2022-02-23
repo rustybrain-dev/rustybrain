@@ -1,5 +1,6 @@
 mod anonymous;
 mod codeblock;
+mod emphasis;
 mod headline;
 mod link;
 
@@ -13,6 +14,7 @@ use anonymous::Anonymous;
 use headline::Headline;
 
 use self::codeblock::Codeblock;
+use self::emphasis::Emphasis;
 use self::link::Link;
 
 pub trait Blocking {
@@ -71,12 +73,39 @@ pub trait Blocking {
     fn cursor_in(&self, _buffer: &TextBuffer) {}
 
     fn cursor_out(&self, _buffer: &TextBuffer) {}
+
+    fn hide_surround(&self, buffer: &gtk::TextBuffer) {
+        let b_end = self.start(buffer);
+        let mut b_start = b_end.clone();
+        b_start.backward_char();
+
+        let e_start = self.end(buffer);
+        let mut e_end = e_start.clone();
+        e_end.forward_char();
+
+        buffer.apply_tag_by_name("hidden", &b_start, &b_end);
+        buffer.apply_tag_by_name("hidden", &e_start, &e_end);
+    }
+
+    fn show_surround(&self, buffer: &gtk::TextBuffer) {
+        let b_end = self.start(buffer);
+        let mut b_start = b_end.clone();
+        b_start.backward_char();
+
+        let e_start = self.end(buffer);
+        let mut e_end = e_start.clone();
+        e_end.forward_char();
+
+        buffer.remove_tag_by_name("hidden", &b_start, &b_end);
+        buffer.remove_tag_by_name("hidden", &e_start, &e_end);
+    }
 }
 
 pub enum Block {
     Headline(Headline),
     Codeblock(Codeblock),
     Link(Link),
+    Emphasis(Emphasis),
     Anonymous(Anonymous),
 }
 
@@ -97,6 +126,9 @@ impl Blocking for Block {
         if node.kind() == "link" {
             return Self::Link(Link::from_node(node, buffer));
         }
+        if node.kind() == "emphasis" {
+            return Self::Emphasis(Emphasis::from_node(node, buffer));
+        }
 
         Self::Anonymous(Anonymous::from_node(node, buffer))
     }
@@ -107,6 +139,7 @@ impl Blocking for Block {
             Block::Anonymous(a) => a.start(buffer),
             Block::Codeblock(b) => b.start(buffer),
             Block::Link(l) => l.start(buffer),
+            Block::Emphasis(e) => e.start(buffer),
         }
     }
 
@@ -116,6 +149,7 @@ impl Blocking for Block {
             Block::Anonymous(a) => a.end(buffer),
             Block::Codeblock(b) => b.end(buffer),
             Block::Link(l) => l.end(buffer),
+            Block::Emphasis(e) => e.end(buffer),
         }
     }
 
@@ -125,6 +159,7 @@ impl Blocking for Block {
             Block::Anonymous(a) => a.left(),
             Block::Codeblock(b) => b.left(),
             Block::Link(l) => l.left(),
+            Block::Emphasis(e) => e.left(),
         }
     }
 
@@ -134,6 +169,7 @@ impl Blocking for Block {
             Block::Anonymous(a) => a.right(),
             Block::Codeblock(b) => b.right(),
             Block::Link(l) => l.right(),
+            Block::Emphasis(e) => e.right(),
         }
     }
 
@@ -143,6 +179,7 @@ impl Blocking for Block {
             Block::Anonymous(a) => a.apply_tag(buffer),
             Block::Codeblock(b) => b.apply_tag(buffer),
             Block::Link(l) => l.apply_tag(buffer),
+            Block::Emphasis(e) => e.apply_tag(buffer),
         }
     }
 
@@ -152,6 +189,7 @@ impl Blocking for Block {
             Block::Anonymous(a) => a.umount(buffer),
             Block::Codeblock(b) => b.umount(buffer),
             Block::Link(l) => l.umount(buffer),
+            Block::Emphasis(e) => e.umount(buffer),
         }
     }
 
@@ -161,6 +199,7 @@ impl Blocking for Block {
             Block::Anonymous(a) => a.remove_tag(buffer),
             Block::Codeblock(b) => b.remove_tag(buffer),
             Block::Link(l) => l.remove_tag(buffer),
+            Block::Emphasis(e) => e.remove_tag(buffer),
         }
     }
 
@@ -170,6 +209,7 @@ impl Blocking for Block {
             Block::Codeblock(c) => c.cursor_in(buffer),
             Block::Anonymous(a) => a.cursor_in(buffer),
             Block::Link(l) => l.cursor_in(buffer),
+            Block::Emphasis(e) => e.cursor_in(buffer),
         }
     }
 
@@ -179,6 +219,7 @@ impl Blocking for Block {
             Block::Codeblock(h) => h.cursor_out(buffer),
             Block::Anonymous(h) => h.cursor_out(buffer),
             Block::Link(l) => l.cursor_out(buffer),
+            Block::Emphasis(e) => e.cursor_out(buffer),
         }
     }
 }
