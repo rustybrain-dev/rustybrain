@@ -60,7 +60,16 @@ impl Style {
         }
     }
 
-    fn fill_link(&mut self) {}
+    fn fill_link(&mut self) {
+        let fd = self.font_desc();
+        let tag = TextTag::builder()
+            .name("link")
+            .foreground("blue")
+            .underline(gtk::pango::Underline::SingleLine)
+            .font_desc(&fd)
+            .build();
+        self.table.add(&tag);
+    }
 
     fn fill_code(&mut self) {}
 

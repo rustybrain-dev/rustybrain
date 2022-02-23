@@ -1,6 +1,7 @@
 mod anonymous;
 mod codeblock;
 mod headline;
+mod link;
 
 use gtk::prelude::*;
 use gtk::TextBuffer;
@@ -12,6 +13,7 @@ use anonymous::Anonymous;
 use headline::Headline;
 
 use self::codeblock::Codeblock;
+use self::link::Link;
 
 pub trait Blocking {
     fn node_endpoint(node: &Node, buffer: &TextBuffer) -> (TextMark, TextMark) {
@@ -74,6 +76,7 @@ pub trait Blocking {
 pub enum Block {
     Headline(Headline),
     Codeblock(Codeblock),
+    Link(Link),
     Anonymous(Anonymous),
 }
 
@@ -91,6 +94,10 @@ impl Blocking for Block {
         if node.kind() == "fenced_code_block" {
             return Self::Codeblock(Codeblock::from_node(node, buffer));
         }
+        if node.kind() == "link" {
+            return Self::Link(Link::from_node(node, buffer));
+        }
+
         Self::Anonymous(Anonymous::from_node(node, buffer))
     }
 
@@ -99,6 +106,7 @@ impl Blocking for Block {
             Block::Headline(h) => h.start(buffer),
             Block::Anonymous(a) => a.start(buffer),
             Block::Codeblock(b) => b.start(buffer),
+            Block::Link(l) => l.start(buffer),
         }
     }
 
@@ -107,6 +115,7 @@ impl Blocking for Block {
             Block::Headline(h) => h.end(buffer),
             Block::Anonymous(a) => a.end(buffer),
             Block::Codeblock(b) => b.end(buffer),
+            Block::Link(l) => l.end(buffer),
         }
     }
 
@@ -115,6 +124,7 @@ impl Blocking for Block {
             Block::Headline(h) => h.left(),
             Block::Anonymous(a) => a.left(),
             Block::Codeblock(b) => b.left(),
+            Block::Link(l) => l.left(),
         }
     }
 
@@ -123,6 +133,7 @@ impl Blocking for Block {
             Block::Headline(h) => h.right(),
             Block::Anonymous(a) => a.right(),
             Block::Codeblock(b) => b.right(),
+            Block::Link(l) => l.right(),
         }
     }
 
@@ -131,6 +142,7 @@ impl Blocking for Block {
             Block::Headline(h) => h.apply_tag(buffer),
             Block::Anonymous(a) => a.apply_tag(buffer),
             Block::Codeblock(b) => b.apply_tag(buffer),
+            Block::Link(l) => l.apply_tag(buffer),
         }
     }
 
@@ -139,6 +151,7 @@ impl Blocking for Block {
             Block::Headline(h) => h.umount(buffer),
             Block::Anonymous(a) => a.umount(buffer),
             Block::Codeblock(b) => b.umount(buffer),
+            Block::Link(l) => l.umount(buffer),
         }
     }
 
@@ -147,6 +160,7 @@ impl Blocking for Block {
             Block::Headline(h) => h.remove_tag(buffer),
             Block::Anonymous(a) => a.remove_tag(buffer),
             Block::Codeblock(b) => b.remove_tag(buffer),
+            Block::Link(l) => l.remove_tag(buffer),
         }
     }
 
@@ -155,6 +169,7 @@ impl Blocking for Block {
             Block::Headline(h) => h.cursor_in(buffer),
             Block::Codeblock(c) => c.cursor_in(buffer),
             Block::Anonymous(a) => a.cursor_in(buffer),
+            Block::Link(l) => l.cursor_in(buffer),
         }
     }
 
@@ -163,6 +178,7 @@ impl Blocking for Block {
             Block::Headline(h) => h.cursor_out(buffer),
             Block::Codeblock(h) => h.cursor_out(buffer),
             Block::Anonymous(h) => h.cursor_out(buffer),
+            Block::Link(l) => l.cursor_out(buffer),
         }
     }
 }

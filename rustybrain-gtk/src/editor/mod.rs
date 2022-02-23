@@ -181,12 +181,14 @@ impl Widgets<Model, super::AppModel> for Editor {
             .spacing(10)
             .margin_end(10)
             .build();
+
         let entry = gtk::Entry::builder()
             .hexpand(true)
             .vexpand(false)
             .placeholder_text("Title")
             .buffer(&model.title)
             .build();
+
         box_.append(&entry);
 
         let s = sender.clone();
