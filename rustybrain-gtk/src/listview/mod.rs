@@ -16,6 +16,7 @@ use rustybrain_core::zettel::Zettel;
 
 pub struct Model {
     config: Config,
+    kasten: Kasten,
 }
 
 pub enum Msg {
@@ -53,8 +54,7 @@ impl Components<Model> for ListViewComponents {
     ) -> Self {
         let mut items = vec![];
 
-        let kasten = Kasten::new(parent_model.config.clone());
-        for zettel in kasten {
+        for zettel in parent_model.kasten.clone() {
             match zettel {
                 Ok(z) => {
                     let model = RowModel { zettel: z };
@@ -94,6 +94,7 @@ impl ComponentUpdate<super::AppModel> for Model {
     fn init_model(parent_model: &super::AppModel) -> Self {
         Model {
             config: parent_model.config.clone(),
+            kasten: parent_model.kasten.clone(),
         }
     }
 

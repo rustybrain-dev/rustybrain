@@ -14,6 +14,7 @@ use relm4::RelmApp;
 use relm4::RelmComponent;
 use relm4::Widgets;
 use rustybrain_core::config::Config;
+use rustybrain_core::kasten::Kasten;
 use rustybrain_core::zettel::Zettel;
 
 pub enum Msg {
@@ -23,6 +24,7 @@ pub enum Msg {
 
 pub struct AppModel {
     config: Config,
+    kasten: Kasten,
 }
 
 pub struct AppComponents {
@@ -131,6 +133,7 @@ body {
 pub fn run(config: &Config) {
     let model = AppModel {
         config: config.clone(),
+        kasten: Kasten::new(config.clone()).unwrap(),
     };
     let app = RelmApp::new(model);
     app.run();
