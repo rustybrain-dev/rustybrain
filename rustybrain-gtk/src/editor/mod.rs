@@ -2,7 +2,7 @@ mod block;
 mod style;
 
 use gtk::{prelude::*, ScrolledWindow, TextMark};
-use relm4::{send, AppUpdate, ComponentUpdate, Widgets};
+use relm4::{send, ComponentUpdate, Components, Widgets};
 use rustybrain_core::config::Config;
 use rustybrain_core::md::TreeCursor;
 use rustybrain_core::md::{Node, Tree};
@@ -31,23 +31,25 @@ pub struct Model {
     blocks: Vec<block::Block>,
 }
 
+pub struct EditorComponents {}
+
+impl Components<Model> for EditorComponents {
+    fn init_components(
+        _parent_model: &Model,
+        _parent_sender: relm4::Sender<Msg>,
+    ) -> Self {
+        EditorComponents {}
+    }
+
+    fn connect_parent(&mut self, _parent_widgets: &Editor) {}
+}
+
 impl relm4::Model for Model {
     type Msg = Msg;
 
     type Widgets = Editor;
 
-    type Components = ();
-}
-
-impl AppUpdate for Model {
-    fn update(
-        &mut self,
-        _msg: Self::Msg,
-        _components: &Self::Components,
-        _sender: relm4::Sender<Self::Msg>,
-    ) -> bool {
-        true
-    }
+    type Components = EditorComponents;
 }
 
 pub struct Editor {
@@ -188,7 +190,7 @@ impl Widgets<Model, super::AppModel> for Editor {
 
     fn init_view(
         model: &Model,
-        _components: &(),
+        _components: &EditorComponents,
         sender: relm4::Sender<Msg>,
     ) -> Self {
         let box_ = gtk::Box::builder()
@@ -211,7 +213,6 @@ impl Widgets<Model, super::AppModel> for Editor {
             .hexpand(true)
             .vexpand(true)
             .child(&box_)
-            .margin_end(10)
             .build();
 
         let s = sender.clone();

@@ -1,5 +1,5 @@
 use gtk::{prelude::*, Label, ListBoxRow};
-use relm4::{send, AppUpdate, ComponentUpdate};
+use relm4::{send, ComponentUpdate};
 use rustybrain_core::zettel::Zettel;
 
 pub enum Msg {
@@ -15,17 +15,6 @@ pub struct Item {
 
     #[allow(dead_code)]
     label: Label,
-}
-
-impl AppUpdate for Model {
-    fn update(
-        &mut self,
-        _msg: Self::Msg,
-        _components: &Self::Components,
-        _sender: relm4::Sender<Self::Msg>,
-    ) -> bool {
-        true
-    }
 }
 
 impl relm4::Model for Model {

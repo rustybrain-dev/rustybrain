@@ -1,11 +1,17 @@
 mod backlinks;
 mod editor;
 mod listview;
+mod search;
 
-use gtk::prelude::*;
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use gtk::ApplicationWindow;
 use gtk::CssProvider;
 use gtk::StyleContext;
+use gtk::{
+    prelude::*, CallbackAction, Shortcut, ShortcutController, ShortcutTrigger,
+};
 use relm4::send;
 use relm4::AppUpdate;
 use relm4::Components;
@@ -19,18 +25,21 @@ use rustybrain_core::zettel::Zettel;
 
 pub enum Msg {
     Quit,
+    StartSearch,
+    Init(ApplicationWindow),
     ChangeZettel(Zettel),
 }
 
 pub struct AppModel {
     config: Config,
-    kasten: Kasten,
+    kasten: Rc<RefCell<Kasten>>,
 }
 
 pub struct AppComponents {
     editor: RelmComponent<editor::Model, AppModel>,
     listview: RelmComponent<listview::Model, AppModel>,
     backlinks: RelmComponent<backlinks::Model, AppModel>,
+    search: RelmComponent<search::Model, AppModel>,
 }
 
 impl Components<AppModel> for AppComponents {
@@ -41,7 +50,8 @@ impl Components<AppModel> for AppComponents {
         AppComponents {
             editor: RelmComponent::new(parent_model, parent_sender.clone()),
             listview: RelmComponent::new(parent_model, parent_sender.clone()),
-            backlinks: RelmComponent::new(parent_model, parent_sender),
+            backlinks: RelmComponent::new(parent_model, parent_sender.clone()),
+            search: RelmComponent::new(parent_model, parent_sender.clone()),
         }
     }
 
@@ -75,6 +85,15 @@ impl AppUpdate for AppModel {
             Msg::ChangeZettel(z) => {
                 send!(components.editor.sender(), editor::Msg::Open(z))
             }
+            Msg::Init(w) => {
+                send!(
+                    components.search.sender(),
+                    search::Msg::Init(w, self.kasten.clone())
+                )
+            }
+            Msg::StartSearch => {
+                send!(components.search.sender(), search::Msg::Show)
+            }
         }
         true
     }
@@ -86,8 +105,15 @@ impl Widgets<AppModel, ()> for AppWidgets {
     fn init_view(
         _model: &AppModel,
         components: &AppComponents,
-        _sender: relm4::Sender<Msg>,
+        sender: relm4::Sender<Msg>,
     ) -> Self {
+        let window = ApplicationWindow::builder().build();
+        window.set_title(Some(
+            "Rusty Brain -- To Help You Build Your Second Brain!",
+        ));
+        window.set_default_size(1200, 800);
+        send!(sender, Msg::Init(window.clone()));
+
         let box_ = gtk::Box::builder()
             .orientation(gtk::Orientation::Horizontal)
             .spacing(6)
@@ -99,12 +125,25 @@ impl Widgets<AppModel, ()> for AppWidgets {
         box_.append(components.editor.root_widget());
         box_.append(components.backlinks.root_widget());
 
-        let window = ApplicationWindow::builder().build();
-        window.set_title(Some(
-            "Rusty Brain -- To Help You Build Your Second Brain!",
-        ));
         window.set_child(Some(&box_));
-        window.set_default_size(1200, 800);
+
+        let sender = components.search.sender();
+        let action = CallbackAction::new(move |_, _| {
+            send!(sender, search::Msg::Show);
+            true
+        });
+        let trigger = ShortcutTrigger::parse_string("<Control>i").unwrap();
+        let shortcut = Shortcut::builder()
+            .trigger(&trigger)
+            .action(&action)
+            .build();
+
+        let shortcut_ctrl = ShortcutController::builder()
+            .scope(gtk::ShortcutScope::Global)
+            .build();
+
+        shortcut_ctrl.add_shortcut(&shortcut);
+        window.add_controller(&shortcut_ctrl);
 
         AppWidgets { window, box_ }
     }
@@ -133,7 +172,7 @@ body {
 pub fn run(config: &Config) {
     let model = AppModel {
         config: config.clone(),
-        kasten: Kasten::new(config.clone()).unwrap(),
+        kasten: Rc::new(RefCell::new(Kasten::new(config.clone()).unwrap())),
     };
     let app = RelmApp::new(model);
     app.run();

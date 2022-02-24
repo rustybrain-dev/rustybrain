@@ -1,11 +1,13 @@
 mod item;
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use gtk::prelude::*;
 use gtk::ListBox;
 use gtk::ListBoxRow;
 use gtk::ScrolledWindow;
 use relm4::send;
-use relm4::AppUpdate;
 use relm4::ComponentUpdate;
 use relm4::Components;
 use relm4::RelmComponent;
@@ -14,7 +16,7 @@ use rustybrain_core::kasten::Kasten;
 use rustybrain_core::zettel::Zettel;
 
 pub struct Model {
-    kasten: Kasten,
+    kasten: Rc<RefCell<Kasten>>,
 }
 
 pub enum Msg {
@@ -51,8 +53,8 @@ impl Components<Model> for ListViewComponents {
         parent_sender: relm4::Sender<Msg>,
     ) -> Self {
         let mut items = vec![];
-
-        for zettel in parent_model.kasten.clone() {
+        let kasten = &*(parent_model.kasten).borrow();
+        for zettel in kasten.clone() {
             match zettel {
                 Ok(z) => {
                     let model = RowModel { zettel: z };
@@ -75,17 +77,6 @@ impl relm4::Model for Model {
     type Widgets = ListView;
 
     type Components = ListViewComponents;
-}
-
-impl AppUpdate for Model {
-    fn update(
-        &mut self,
-        _msg: Self::Msg,
-        _components: &Self::Components,
-        _sender: relm4::Sender<Self::Msg>,
-    ) -> bool {
-        true
-    }
 }
 
 impl ComponentUpdate<super::AppModel> for Model {

@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 gtk = { version = "0.4.1", package = "gtk4" }
+gdk = { version = "0.4.1", package = "gdk4" }
 relm4 = { version = "0.4", features = ["macros"] }
 relm4-components = "0.4"
 rustybrain-core = { path = "../rustybrain-core" }

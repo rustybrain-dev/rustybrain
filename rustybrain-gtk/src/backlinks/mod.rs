@@ -1,6 +1,5 @@
 use gtk::prelude::*;
 use gtk::ScrolledWindow;
-use relm4::AppUpdate;
 use relm4::ComponentUpdate;
 use relm4::Widgets;
 use rustybrain_core::config::Config;
@@ -24,17 +23,6 @@ impl relm4::Model for Model {
     type Widgets = Backlinks;
 
     type Components = ();
-}
-
-impl AppUpdate for Model {
-    fn update(
-        &mut self,
-        _msg: Self::Msg,
-        _components: &Self::Components,
-        _sender: relm4::Sender<Self::Msg>,
-    ) -> bool {
-        true
-    }
 }
 
 impl ComponentUpdate<AppModel> for Model {

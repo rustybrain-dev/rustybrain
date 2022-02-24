@@ -1257,6 +1257,7 @@ dependencies = [
 name = "rustybrain-gtk"
 version = "0.1.0"
 dependencies = [
+ "gdk4",
  "gtk4",
  "relm4",
  "relm4-components",

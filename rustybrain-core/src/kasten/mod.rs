@@ -1,7 +1,9 @@
 use std::fs::{self, DirEntry, ReadDir};
 
 use tantivy::{
-    schema::{Field, Schema, STORED, TEXT},
+    collector::TopDocs,
+    query::{QueryParser, QueryParserError},
+    schema::{Field, Schema, Value, STORED, TEXT},
     Document, Index, TantivyError,
 };
 
@@ -16,6 +18,7 @@ pub enum KastenError {
     ZettelIOError(std::io::Error),
     ZettelParseError(ZettelError),
     IndexError(tantivy::TantivyError),
+    QueryError(QueryParserError),
 }
 
 impl From<std::io::Error> for KastenError {
@@ -33,6 +36,12 @@ impl From<ZettelError> for KastenError {
 impl From<TantivyError> for KastenError {
     fn from(e: TantivyError) -> Self {
         Self::IndexError(e)
+    }
+}
+
+impl From<QueryParserError> for KastenError {
+    fn from(e: QueryParserError) -> Self {
+        Self::QueryError(e)
     }
 }
 
@@ -85,6 +94,28 @@ impl Kasten {
             index_writer.add_document(doc);
         }
         index_writer.commit()?;
+        Ok(())
+    }
+
+    pub fn search_title(&self, kw: &str) -> Result<(), KastenError> {
+        let reader = self
+            .index
+            .reader_builder()
+            .reload_policy(tantivy::ReloadPolicy::OnCommit)
+            .try_into()?;
+        let searcher = reader.searcher();
+        let query_parser =
+            QueryParser::for_index(&self.index, vec![self.title]);
+        let query = query_parser.parse_query(kw)?;
+        let top_docs = searcher.search(&query, &TopDocs::with_limit(10))?;
+        for (_score, doc_address) in top_docs {
+            let retrieved_doc: Document = searcher.doc(doc_address)?;
+            if let Some(path) = retrieved_doc.get_first(self.path) {
+                if let Value::Str(s) = path {
+                    println!("path {}", s);
+                }
+            }
+        }
         Ok(())
     }
 }
