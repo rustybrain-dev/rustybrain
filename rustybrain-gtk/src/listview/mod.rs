@@ -10,12 +10,10 @@ use relm4::ComponentUpdate;
 use relm4::Components;
 use relm4::RelmComponent;
 use relm4::Widgets;
-use rustybrain_core::config::Config;
 use rustybrain_core::kasten::Kasten;
 use rustybrain_core::zettel::Zettel;
 
 pub struct Model {
-    config: Config,
     kasten: Kasten,
 }
 
@@ -93,7 +91,6 @@ impl AppUpdate for Model {
 impl ComponentUpdate<super::AppModel> for Model {
     fn init_model(parent_model: &super::AppModel) -> Self {
         Model {
-            config: parent_model.config.clone(),
             kasten: parent_model.kasten.clone(),
         }
     }
