@@ -6,7 +6,10 @@ use gtk::{
     MessageType, ScrolledWindow, Shortcut, ShortcutController,
 };
 use relm4::{send, ComponentUpdate, Widgets};
-use rustybrain_core::{kasten::Kasten, zettel::Zettel};
+use rustybrain_core::{
+    kasten::{Kasten, KastenError},
+    zettel::Zettel,
+};
 
 use crate::AppModel;
 
@@ -20,6 +23,7 @@ pub enum Msg {
     Init(ApplicationWindow, Rc<RefCell<Kasten>>),
     Show,
     Changed(String),
+    Search(Rc<RefCell<Kasten>>, String),
 }
 
 pub struct Search {
@@ -53,69 +57,90 @@ impl ComponentUpdate<AppModel> for Model {
         &mut self,
         msg: Self::Msg,
         _components: &(),
-        _sender: relm4::Sender<Self::Msg>,
+        sender: relm4::Sender<Self::Msg>,
         parent_sender: relm4::Sender<super::Msg>,
     ) {
         match msg {
             Msg::Init(w, k) => {
                 self.dialog.set_transient_for(Some(&w));
-                {
-                    let kasten = k.borrow();
-                    for item in kasten.iter() {
-                        match item {
-                            Ok(z) => self.zettels.push(z),
-                            Err(_) => send!(
-                                parent_sender,
-                                super::Msg::ShowMsg(
-                                    MessageType::Error,
-                                    "Load notes from slip-box failed!"
-                                        .to_string()
-                                )
-                            ),
-                        }
-                    }
-                }
+                self.handle_init(&k.borrow(), parent_sender);
                 self.kasten = Some(k);
             }
             Msg::Changed(s) => {
                 if let Some(kasten) = &self.kasten {
-                    self.zettels.clear();
-                    let kasten = kasten.borrow();
-                    match kasten.search_title(&s) {
-                        Ok(set) => {
-                            for item in kasten.iter() {
-                                match item {
-                                    Ok(z) => {
-                                        let p = z.path().to_str().unwrap();
-                                        if set
-                                            .contains::<String>(&p.to_string())
-                                        {
-                                            self.zettels.push(z);
-                                        }
-                                    }
-                                    Err(_) => send!(
-                                        parent_sender,
-                                        super::Msg::ShowMsg(
-                                            MessageType::Error,
-                                            "Load notes from slip-box failed!"
-                                                .to_string()
-                                        )
-                                    ),
-                                }
+                    send!(sender, Msg::Search(kasten.clone(), s));
+                }
+            }
+            Msg::Show => self.dialog.show(),
+            Msg::Search(k, s) => {
+                self.handle_search(&k.borrow(), parent_sender, &s)
+            }
+        }
+    }
+}
+
+impl Model {
+    fn handle_init(
+        &mut self,
+        kasten: &Kasten,
+        parent_sender: relm4::Sender<super::Msg>,
+    ) {
+        for item in kasten.iter() {
+            self.push_zettel(item, parent_sender.clone());
+        }
+    }
+
+    fn handle_search(
+        &mut self,
+        kasten: &Kasten,
+        parent_sender: relm4::Sender<super::Msg>,
+        s: &str,
+    ) {
+        self.zettels.clear();
+        match kasten.search_title(&s) {
+            Ok(set) => {
+                for item in kasten.iter() {
+                    match item {
+                        Ok(z) => {
+                            let p = z.path().to_str().unwrap();
+                            if set.contains::<String>(&p.to_string()) {
+                                self.zettels.push(z);
                             }
                         }
                         Err(_) => send!(
                             parent_sender,
                             super::Msg::ShowMsg(
                                 MessageType::Error,
-                                "Search notes from slip-box failed!"
-                                    .to_string()
+                                "Load notes from slip-box failed!".to_string()
                             )
                         ),
-                    };
+                    }
                 }
             }
-            Msg::Show => self.dialog.show(),
+            Err(_) => send!(
+                parent_sender,
+                super::Msg::ShowMsg(
+                    MessageType::Error,
+                    "Search notes from slip-box failed!".to_string()
+                )
+            ),
+        };
+    }
+
+    fn push_zettel(
+        &mut self,
+        item: Result<Zettel, KastenError>,
+        parent_sender: relm4::Sender<super::Msg>,
+    ) {
+        match item {
+            Ok(z) => self.zettels.push(z),
+            Err(_) => send!(
+                parent_sender,
+                super::Msg::ShowMsg(
+                    MessageType::Error,
+                    "Load notes from slip-box failed!".to_string()
+                )
+            ),
         }
     }
 }
