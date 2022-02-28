@@ -53,8 +53,8 @@ impl Components<Model> for ListViewComponents {
         parent_sender: relm4::Sender<Msg>,
     ) -> Self {
         let mut items = vec![];
-        let kasten = &*(parent_model.kasten).borrow();
-        for zettel in kasten.clone() {
+        let kasten = parent_model.kasten.borrow();
+        for zettel in kasten.iter() {
             match zettel {
                 Ok(z) => {
                     let model = RowModel { zettel: z };

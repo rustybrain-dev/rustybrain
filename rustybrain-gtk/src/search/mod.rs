@@ -6,12 +6,13 @@ use gtk::{
     Shortcut, ShortcutController,
 };
 use relm4::{send, ComponentUpdate, Widgets};
-use rustybrain_core::kasten::Kasten;
+use rustybrain_core::{kasten::Kasten, zettel::Zettel};
 
 use crate::AppModel;
 
 pub struct Model {
     dialog: Dialog,
+    zettels: Vec<Zettel>,
     kasten: Option<Rc<RefCell<Kasten>>>,
 }
 
@@ -23,6 +24,7 @@ pub enum Msg {
 
 pub struct Search {
     dialog: Dialog,
+    list_box: gtk::ListBox,
 }
 
 impl relm4::Model for Model {
@@ -34,7 +36,13 @@ impl relm4::Model for Model {
 }
 
 impl ComponentUpdate<AppModel> for Model {
-    fn init_model(_parent_model: &AppModel) -> Self {
+    fn init_model(parent_model: &AppModel) -> Self {
+        let kasten = parent_model.kasten.borrow();
+        let mut zettels = vec![];
+        for z in kasten.iter() {
+            let item = z.unwrap();
+            zettels.push(item);
+        }
         Model {
             dialog: gtk::Dialog::builder()
                 .destroy_with_parent(true)
@@ -42,6 +50,7 @@ impl ComponentUpdate<AppModel> for Model {
                 .modal(true)
                 .build(),
             kasten: None,
+            zettels,
         }
     }
 
@@ -77,7 +86,13 @@ impl Widgets<Model, AppModel> for Search {
         sender: relm4::Sender<Msg>,
     ) -> Self {
         let entry = gtk::SearchEntry::builder().build();
-        model.dialog.set_child(Some(&entry));
+        let box_ = gtk::Box::builder()
+            .orientation(gtk::Orientation::Vertical)
+            .build();
+        let list_box = gtk::ListBox::builder().build();
+        box_.append(&entry);
+        box_.append(&list_box);
+        model.dialog.set_child(Some(&box_));
 
         let trigger = KeyvalTrigger::new(Key::Escape, ModifierType::empty());
         let d = model.dialog.clone();
@@ -100,6 +115,7 @@ impl Widgets<Model, AppModel> for Search {
 
         Search {
             dialog: model.dialog.clone(),
+            list_box,
         }
     }
 
@@ -107,5 +123,17 @@ impl Widgets<Model, AppModel> for Search {
         self.dialog.clone()
     }
 
-    fn view(&mut self, _model: &Model, _sender: relm4::Sender<Msg>) {}
+    fn view(&mut self, model: &Model, _sender: relm4::Sender<Msg>) {
+        loop {
+            match self.list_box.last_child() {
+                Some(c) => self.list_box.remove(&c),
+                None => break,
+            }
+        }
+        for item in model.zettels.iter() {
+            let label = gtk::Label::builder().label(item.title()).build();
+            let row = gtk::ListBoxRow::builder().child(&label).build();
+            self.list_box.append(&row);
+        }
+    }
 }

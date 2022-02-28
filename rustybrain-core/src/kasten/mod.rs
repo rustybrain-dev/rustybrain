@@ -118,26 +118,33 @@ impl Kasten {
         }
         Ok(())
     }
-}
 
-impl IntoIterator for Kasten {
-    type Item = Result<Zettel, KastenError>;
-    type IntoIter = KastenIter;
-
-    fn into_iter(self) -> Self::IntoIter {
-        KastenIter {
+    pub fn iter(&self) -> IntoIter {
+        IntoIter {
             inner: None,
             path: self.config.repo_path().to_string(),
         }
     }
 }
 
-pub struct KastenIter {
+impl IntoIterator for Kasten {
+    type Item = Result<Zettel, KastenError>;
+    type IntoIter = IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter {
+            inner: None,
+            path: self.config.repo_path().to_string(),
+        }
+    }
+}
+
+pub struct IntoIter {
     inner: Option<ReadDir>,
     path: String,
 }
 
-impl Iterator for KastenIter {
+impl Iterator for IntoIter {
     type Item = Result<Zettel, KastenError>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -160,7 +167,7 @@ impl Iterator for KastenIter {
     }
 }
 
-impl KastenIter {
+impl IntoIter {
     fn dir_entry_to_zettel(
         entry: Result<DirEntry, std::io::Error>,
     ) -> Result<Zettel, KastenError> {
