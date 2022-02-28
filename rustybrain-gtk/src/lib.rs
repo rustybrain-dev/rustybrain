@@ -1,6 +1,7 @@
 mod backlinks;
 mod editor;
 mod listview;
+mod msg;
 mod search;
 
 use std::cell::RefCell;
@@ -8,6 +9,7 @@ use std::rc::Rc;
 
 use gtk::ApplicationWindow;
 use gtk::CssProvider;
+use gtk::MessageType;
 use gtk::StyleContext;
 use gtk::{
     prelude::*, CallbackAction, Shortcut, ShortcutController, ShortcutTrigger,
@@ -28,6 +30,7 @@ pub enum Msg {
     StartSearch,
     Init(ApplicationWindow),
     ChangeZettel(Zettel),
+    ShowMsg(MessageType, String),
 }
 
 pub struct AppModel {
@@ -40,6 +43,7 @@ pub struct AppComponents {
     listview: RelmComponent<listview::Model, AppModel>,
     backlinks: RelmComponent<backlinks::Model, AppModel>,
     search: RelmComponent<search::Model, AppModel>,
+    msg: RelmComponent<msg::Model, AppModel>,
 }
 
 impl Components<AppModel> for AppComponents {
@@ -52,6 +56,7 @@ impl Components<AppModel> for AppComponents {
             listview: RelmComponent::new(parent_model, parent_sender.clone()),
             backlinks: RelmComponent::new(parent_model, parent_sender.clone()),
             search: RelmComponent::new(parent_model, parent_sender.clone()),
+            msg: RelmComponent::new(parent_model, parent_sender.clone()),
         }
     }
 
@@ -93,6 +98,9 @@ impl AppUpdate for AppModel {
             }
             Msg::StartSearch => {
                 send!(components.search.sender(), search::Msg::Show)
+            }
+            Msg::ShowMsg(t, s) => {
+                send!(components.msg.sender(), msg::Msg::Show(t, s))
             }
         }
         true

@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use gdk::{Key, ModifierType};
 use gtk::{
     prelude::*, ApplicationWindow, CallbackAction, Dialog, KeyvalTrigger,
-    ScrolledWindow, Shortcut, ShortcutController,
+    MessageType, ScrolledWindow, Shortcut, ShortcutController,
 };
 use relm4::{send, ComponentUpdate, Widgets};
 use rustybrain_core::{kasten::Kasten, zettel::Zettel};
@@ -36,13 +36,8 @@ impl relm4::Model for Model {
 }
 
 impl ComponentUpdate<AppModel> for Model {
-    fn init_model(parent_model: &AppModel) -> Self {
-        let kasten = parent_model.kasten.borrow();
-        let mut zettels = vec![];
-        for z in kasten.iter() {
-            let item = z.unwrap();
-            zettels.push(item);
-        }
+    fn init_model(_parent_model: &AppModel) -> Self {
+        let zettels = vec![];
         Model {
             dialog: gtk::Dialog::builder()
                 .destroy_with_parent(true)
@@ -59,25 +54,65 @@ impl ComponentUpdate<AppModel> for Model {
         msg: Self::Msg,
         _components: &(),
         _sender: relm4::Sender<Self::Msg>,
-        _parent_sender: relm4::Sender<super::Msg>,
+        parent_sender: relm4::Sender<super::Msg>,
     ) {
         match msg {
             Msg::Init(w, k) => {
                 self.dialog.set_transient_for(Some(&w));
+                {
+                    let kasten = k.borrow();
+                    for item in kasten.iter() {
+                        match item {
+                            Ok(z) => self.zettels.push(z),
+                            Err(_) => send!(
+                                parent_sender,
+                                super::Msg::ShowMsg(
+                                    MessageType::Error,
+                                    "Load notes from slip-box failed!"
+                                        .to_string()
+                                )
+                            ),
+                        }
+                    }
+                }
                 self.kasten = Some(k);
             }
             Msg::Changed(s) => {
                 if let Some(kasten) = &self.kasten {
                     self.zettels.clear();
                     let kasten = kasten.borrow();
-                    let set = kasten.search_title(&s).unwrap();
-                    for item in kasten.iter() {
-                        let z = item.unwrap();
-                        let p = z.path().to_str().unwrap();
-                        if set.contains::<String>(&p.to_string()) {
-                            self.zettels.push(z);
+                    match kasten.search_title(&s) {
+                        Ok(set) => {
+                            for item in kasten.iter() {
+                                match item {
+                                    Ok(z) => {
+                                        let p = z.path().to_str().unwrap();
+                                        if set
+                                            .contains::<String>(&p.to_string())
+                                        {
+                                            self.zettels.push(z);
+                                        }
+                                    }
+                                    Err(_) => send!(
+                                        parent_sender,
+                                        super::Msg::ShowMsg(
+                                            MessageType::Error,
+                                            "Load notes from slip-box failed!"
+                                                .to_string()
+                                        )
+                                    ),
+                                }
+                            }
                         }
-                    }
+                        Err(_) => send!(
+                            parent_sender,
+                            super::Msg::ShowMsg(
+                                MessageType::Error,
+                                "Search notes from slip-box failed!"
+                                    .to_string()
+                            )
+                        ),
+                    };
                 }
             }
             Msg::Show => self.dialog.show(),
