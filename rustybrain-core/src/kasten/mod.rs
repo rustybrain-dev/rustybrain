@@ -1,4 +1,7 @@
-use std::fs::{self, DirEntry, ReadDir};
+use std::{
+    collections::HashSet,
+    fs::{self, DirEntry, ReadDir},
+};
 
 use tantivy::{
     collector::TopDocs,
@@ -97,7 +100,10 @@ impl Kasten {
         Ok(())
     }
 
-    pub fn search_title(&self, kw: &str) -> Result<(), KastenError> {
+    pub fn search_title(
+        &self,
+        kw: &str,
+    ) -> Result<HashSet<String>, KastenError> {
         let reader = self
             .index
             .reader_builder()
@@ -108,15 +114,16 @@ impl Kasten {
             QueryParser::for_index(&self.index, vec![self.title]);
         let query = query_parser.parse_query(kw)?;
         let top_docs = searcher.search(&query, &TopDocs::with_limit(10))?;
+        let mut set = HashSet::new();
         for (_score, doc_address) in top_docs {
             let retrieved_doc: Document = searcher.doc(doc_address)?;
             if let Some(path) = retrieved_doc.get_first(self.path) {
                 if let Value::Str(s) = path {
-                    println!("path {}", s);
+                    set.insert(s.to_string());
                 }
             }
         }
-        Ok(())
+        Ok(set)
     }
 
     pub fn iter(&self) -> IntoIter {

@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use gdk::{Key, ModifierType};
 use gtk::{
     prelude::*, ApplicationWindow, CallbackAction, Dialog, KeyvalTrigger,
-    Shortcut, ShortcutController,
+    ScrolledWindow, Shortcut, ShortcutController,
 };
 use relm4::{send, ComponentUpdate, Widgets};
 use rustybrain_core::{kasten::Kasten, zettel::Zettel};
@@ -68,8 +68,16 @@ impl ComponentUpdate<AppModel> for Model {
             }
             Msg::Changed(s) => {
                 if let Some(kasten) = &self.kasten {
+                    self.zettels.clear();
                     let kasten = kasten.borrow();
-                    kasten.search_title(&s).unwrap();
+                    let set = kasten.search_title(&s).unwrap();
+                    for item in kasten.iter() {
+                        let z = item.unwrap();
+                        let p = z.path().to_str().unwrap();
+                        if set.contains::<String>(&p.to_string()) {
+                            self.zettels.push(z);
+                        }
+                    }
                 }
             }
             Msg::Show => self.dialog.show(),
@@ -85,14 +93,20 @@ impl Widgets<Model, AppModel> for Search {
         _components: &(),
         sender: relm4::Sender<Msg>,
     ) -> Self {
-        let entry = gtk::SearchEntry::builder().build();
+        let entry = gtk::SearchEntry::builder().hexpand(true).build();
         let box_ = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
+            .build();
+        let window = ScrolledWindow::builder()
+            .hexpand(true)
+            .height_request(200)
+            .width_request(600)
+            .child(&box_)
             .build();
         let list_box = gtk::ListBox::builder().build();
         box_.append(&entry);
         box_.append(&list_box);
-        model.dialog.set_child(Some(&box_));
+        model.dialog.set_child(Some(&window));
 
         let trigger = KeyvalTrigger::new(Key::Escape, ModifierType::empty());
         let d = model.dialog.clone();
