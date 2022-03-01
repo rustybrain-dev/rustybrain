@@ -16,6 +16,8 @@ use crate::AppModel;
 pub struct Model {
     dialog: Dialog,
     zettels: Vec<Zettel>,
+    searching: String,
+    inserting: bool,
     kasten: Option<Rc<RefCell<Kasten>>>,
 }
 
@@ -49,6 +51,8 @@ impl ComponentUpdate<AppModel> for Model {
                 .modal(true)
                 .build(),
             kasten: None,
+            searching: "".to_string(),
+            inserting: false,
             zettels,
         }
     }
@@ -67,6 +71,7 @@ impl ComponentUpdate<AppModel> for Model {
                 self.kasten = Some(k);
             }
             Msg::Changed(s) => {
+                self.searching = s.clone();
                 if let Some(kasten) = &self.kasten {
                     send!(sender, Msg::Search(kasten.clone(), s));
                 }
@@ -204,10 +209,39 @@ impl Widgets<Model, AppModel> for Search {
                 None => break,
             }
         }
-        for item in model.zettels.iter() {
-            let label = gtk::Label::builder().label(item.title()).build();
-            let row = gtk::ListBoxRow::builder().child(&label).build();
-            self.list_box.append(&row);
+        if model.searching != "" {
+            self.list_box.append(&self.new_list_row(model));
         }
+
+        for item in model.zettels.iter() {
+            if model.inserting {
+                self.list_box.append(&self.row(item.title(), "Insert"));
+            } else {
+                self.list_box.append(&self.row(item.title(), "Go"));
+            }
+        }
+    }
+}
+
+impl Search {
+    fn row(&self, item: &str, btn_label: &str) -> gtk::ListBoxRow {
+        let box_ = gtk::Box::builder()
+            .orientation(gtk::Orientation::Horizontal)
+            .hexpand(true)
+            .build();
+        let label = gtk::Label::builder()
+            .label(item)
+            .justify(gtk::Justification::Left)
+            .hexpand(true)
+            .build();
+
+        let btn = gtk::Button::builder().label(btn_label).build();
+        box_.append(&label);
+        box_.append(&btn);
+        gtk::ListBoxRow::builder().child(&box_).build()
+    }
+
+    fn new_list_row(&self, model: &Model) -> gtk::ListBoxRow {
+        self.row(&model.searching, "New")
     }
 }
