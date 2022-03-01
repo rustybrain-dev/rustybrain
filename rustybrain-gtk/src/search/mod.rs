@@ -174,16 +174,16 @@ impl Widgets<Model, AppModel> for Search {
         let box_ = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
             .build();
+        let list_box = gtk::ListBox::builder().build();
         let window = ScrolledWindow::builder()
             .hexpand(true)
             .height_request(200)
             .width_request(600)
-            .child(&box_)
+            .child(&list_box)
             .build();
-        let list_box = gtk::ListBox::builder().build();
         box_.append(&entry);
-        box_.append(&list_box);
-        model.dialog.set_child(Some(&window));
+        box_.append(&window);
+        model.dialog.set_child(Some(&box_));
 
         let trigger = KeyvalTrigger::new(Key::Escape, ModifierType::empty());
         let d = model.dialog.clone();
