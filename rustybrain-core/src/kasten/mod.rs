@@ -2,6 +2,7 @@ use std::{
     collections::HashSet,
     fs::{self, create_dir_all, DirEntry},
     path::{Path, PathBuf},
+    time::SystemTime,
 };
 
 use chrono::Local;
@@ -218,6 +219,21 @@ impl IntoIter {
                 break;
             }
         }
+        result.sort_by(|a, b| {
+            let mut a_m = SystemTime::now();
+            let mut b_m = SystemTime::now();
+            if let Ok(a) = a.metadata() {
+                if let Ok(am) = a.modified() {
+                    a_m = am;
+                }
+            }
+            if let Ok(b) = b.metadata() {
+                if let Ok(bm) = b.modified() {
+                    b_m = bm;
+                }
+            }
+            b_m.partial_cmp(&a_m).unwrap()
+        });
         Ok(result)
     }
 
