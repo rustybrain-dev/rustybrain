@@ -2,6 +2,8 @@
 
 A Desktop Application that Implemented Zettelkasten to Help You Build Your Second Brain.
 
+**State: Prototype is still Working In Progress!**
+
 ## Goals
 
 - Easy to pratice Zettelkasten even you don't know it.
