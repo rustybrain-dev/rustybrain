@@ -116,6 +116,10 @@ impl Model {
         self.zettels.clear();
         match kasten.search_title(&s) {
             Ok(set) => {
+                if set.is_empty() {
+                    self.handle_init(kasten, parent_sender);
+                    return;
+                }
                 for item in kasten.iter() {
                     match item {
                         Ok(z) => {
