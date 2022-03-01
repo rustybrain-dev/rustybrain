@@ -86,6 +86,12 @@ impl Kasten {
     }
 
     fn build_index(&self) -> Result<(), KastenError> {
+        {
+            let mut index_writer = self.index.writer(50_000_000)?;
+            index_writer.delete_all_documents()?;
+            index_writer.commit()?;
+        }
+
         for entry in self.iter() {
             let z = entry?;
             self.add_doc(z)?;
@@ -149,6 +155,12 @@ impl Kasten {
         let z = Zettel::create(&path, title)?;
         self.add_doc(z.clone())?;
         Ok(z)
+    }
+
+    pub fn save(&mut self, zettel: &Zettel) -> Result<(), KastenError> {
+        zettel.save()?;
+        self.build_index()?;
+        Ok(())
     }
 
     fn new_path(&self) -> PathBuf {

@@ -1,3 +1,5 @@
+use std::fs;
+use std::fs::rename;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
@@ -122,11 +124,37 @@ impl Zettel {
     fn create_and_insert(path: &Path, title: &str) -> Result<(), ZettelError> {
         let mut file = File::create(path)?;
         let header = ZettelHeader::new(title);
+        Self::write_header(&mut file, &header)?;
+        Ok(())
+    }
+
+    pub fn save(&self) -> Result<(), ZettelError> {
+        let tp = self.tmp();
+        if tp.exists() {
+            fs::remove_file(&tp)?;
+        }
+        let mut tmp = File::create(&tp)?;
+        Self::write_header(&mut tmp, &self.header)?;
+        tmp.write(self.content.as_bytes())?;
+        rename(&tp, self.path())?;
+        Ok(())
+    }
+
+    fn write_header(
+        file: &mut File,
+        header: &ZettelHeader,
+    ) -> Result<(), ZettelError> {
         let hs = toml::to_string(&header)?;
         file.write(b"+++\n")?;
         file.write(hs.as_bytes())?;
         file.write(b"+++\n")?;
         Ok(())
+    }
+
+    fn tmp(&self) -> PathBuf {
+        let dir = self.path.parent().unwrap();
+        let f = self.path.file_name().unwrap().to_str().unwrap();
+        dir.join(format!(".{}", f)).to_path_buf()
     }
 
     pub fn path(&self) -> &Path {
@@ -141,9 +169,11 @@ impl Zettel {
         &self.content
     }
 
-    pub fn set_title(&mut self, _title: &str) {}
+    pub fn set_title(&mut self, title: &str) {
+        self.header.title = title.to_string();
+    }
 
-    pub fn set_content(&mut self, _content: &str) {}
-
-    pub fn save() {}
+    pub fn set_content(&mut self, content: &str) {
+        self.content = content.to_string();
+    }
 }

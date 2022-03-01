@@ -19,6 +19,7 @@ pub enum Msg {
 
 pub struct Model {
     tree: Option<Tree>,
+    zettel: Option<Zettel>,
 
     #[allow(dead_code)]
     config: Config,
@@ -61,6 +62,7 @@ impl Model {
     fn open_zettel(&mut self, z: Zettel) {
         self.buffer.set_text(z.content());
         self.title.set_text(z.title());
+        self.zettel = Some(z);
     }
 
     fn on_buffer_changed(&mut self) {
@@ -76,6 +78,10 @@ impl Model {
         self.buffer.apply_tag_by_name("p", &start, &end);
 
         let text = self.buffer.text(&start, &end, true);
+
+        if let Some(zettel) = self.zettel.as_mut() {
+            zettel.set_content(&text);
+        }
 
         if let Ok(tree) = rustybrain_core::md::parse(text.as_str(), None) {
             self.tree = tree;
@@ -146,6 +152,7 @@ impl ComponentUpdate<super::AppModel> for Model {
 
         let mut model = Model {
             tree: None,
+            zettel: None,
             config: parent_model.config.clone(),
             blocks: vec![],
             buffer,
