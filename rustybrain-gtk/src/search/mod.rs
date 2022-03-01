@@ -2,8 +2,8 @@ use std::{cell::RefCell, rc::Rc};
 
 use gdk::{Key, ModifierType};
 use gtk::{
-    prelude::*, ApplicationWindow, CallbackAction, Dialog, KeyvalTrigger,
-    MessageType, ScrolledWindow, Shortcut, ShortcutController,
+    prelude::*, ApplicationWindow, Dialog, EventControllerKey, MessageType,
+    ScrolledWindow,
 };
 use relm4::{send, ComponentUpdate, Widgets};
 use rustybrain_core::{
@@ -14,16 +14,18 @@ use rustybrain_core::{
 use crate::AppModel;
 
 pub struct Model {
-    dialog: Dialog,
+    app_win: Option<ApplicationWindow>,
     zettels: Vec<Zettel>,
     searching: String,
     inserting: bool,
+    show: bool,
     kasten: Option<Rc<RefCell<Kasten>>>,
 }
 
 pub enum Msg {
     Init(ApplicationWindow, Rc<RefCell<Kasten>>),
     Show,
+    Hide,
     Changed(String),
     Search(Rc<RefCell<Kasten>>, String),
     Activate(Option<Zettel>),
@@ -46,12 +48,9 @@ impl ComponentUpdate<AppModel> for Model {
     fn init_model(_parent_model: &AppModel) -> Self {
         let zettels = vec![];
         Model {
-            dialog: gtk::Dialog::builder()
-                .destroy_with_parent(true)
-                .decorated(true)
-                .modal(true)
-                .build(),
+            app_win: None,
             kasten: None,
+            show: false,
             searching: "".to_string(),
             inserting: false,
             zettels,
@@ -66,8 +65,10 @@ impl ComponentUpdate<AppModel> for Model {
         parent_sender: relm4::Sender<super::Msg>,
     ) {
         match msg {
+            Msg::Show => self.show = true,
+            Msg::Hide => self.show = false,
             Msg::Init(w, k) => {
-                self.dialog.set_transient_for(Some(&w));
+                self.app_win = Some(w);
                 self.handle_init(&k.borrow(), parent_sender);
                 self.kasten = Some(k);
             }
@@ -77,12 +78,11 @@ impl ComponentUpdate<AppModel> for Model {
                     send!(sender, Msg::Search(kasten.clone(), s));
                 }
             }
-            Msg::Show => self.dialog.show(),
             Msg::Search(k, s) => {
                 self.handle_search(&k.borrow(), parent_sender, &s)
             }
             Msg::Activate(item) => {
-                self.dialog.hide();
+                send!(sender, Msg::Hide);
                 if let Some(z) = item {
                     send!(parent_sender, super::Msg::ChangeZettel(z));
                 } else {
@@ -170,10 +170,15 @@ impl Widgets<Model, AppModel> for Search {
     type Root = Dialog;
 
     fn init_view(
-        model: &Model,
+        _model: &Model,
         _components: &(),
         sender: relm4::Sender<Msg>,
     ) -> Self {
+        let dialog = gtk::Dialog::builder()
+            .destroy_with_parent(true)
+            .decorated(true)
+            .modal(true)
+            .build();
         let entry = gtk::SearchEntry::builder().hexpand(true).build();
         let box_ = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
@@ -187,31 +192,22 @@ impl Widgets<Model, AppModel> for Search {
             .build();
         box_.append(&entry);
         box_.append(&window);
-        model.dialog.set_child(Some(&box_));
+        dialog.set_child(Some(&box_));
 
-        let trigger = KeyvalTrigger::new(Key::Escape, ModifierType::empty());
-        let d = model.dialog.clone();
-        let action = CallbackAction::new(move |_, _| {
-            d.close();
-            true
-        });
-        let shortcut = Shortcut::builder()
-            .trigger(&trigger)
-            .action(&action)
-            .build();
-        let ctrl = ShortcutController::builder()
-            .scope(gtk::ShortcutScope::Managed)
-            .build();
-        ctrl.add_shortcut(&shortcut);
-        model.dialog.add_controller(&ctrl);
+        let s = sender.clone();
         entry.connect_changed(move |e| {
-            send!(sender, Msg::Changed(e.text().as_str().to_string()))
+            send!(s, Msg::Changed(e.text().as_str().to_string()))
         });
+        let key_ctrl = EventControllerKey::new();
+        let s = sender.clone();
+        key_ctrl.connect_key_released(move |_, k, _, m| {
+            if m == ModifierType::empty() && k == Key::Escape {
+                send!(s, Msg::Hide);
+            }
+        });
+        dialog.add_controller(&key_ctrl);
 
-        Search {
-            dialog: model.dialog.clone(),
-            list_box,
-        }
+        Search { dialog, list_box }
     }
 
     fn root_widget(&self) -> Self::Root {
@@ -219,6 +215,12 @@ impl Widgets<Model, AppModel> for Search {
     }
 
     fn view(&mut self, model: &Model, sender: relm4::Sender<Msg>) {
+        self.dialog.set_transient_for(model.app_win.as_ref());
+        if model.show {
+            self.dialog.show();
+        } else {
+            self.dialog.hide();
+        }
         loop {
             match self.list_box.last_child() {
                 Some(c) => self.list_box.remove(&c),
