@@ -2,7 +2,6 @@ use std::{
     collections::HashSet,
     fs::{self, create_dir_all, DirEntry},
     path::{Path, PathBuf},
-    time::SystemTime,
 };
 
 use chrono::Local;
