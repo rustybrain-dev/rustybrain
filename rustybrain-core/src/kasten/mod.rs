@@ -1,6 +1,6 @@
 use std::{
     collections::HashSet,
-    fs::{self, create_dir_all, DirEntry, ReadDir},
+    fs::{self, create_dir_all, DirEntry},
     path::{Path, PathBuf},
     time::SystemTime,
 };
@@ -174,7 +174,7 @@ impl IntoIterator for Kasten {
 }
 
 pub struct IntoIter {
-    inner: Option<ReadDir>,
+    inner: Option<std::vec::IntoIter<DirEntry>>,
     path: String,
 }
 
@@ -183,12 +183,11 @@ impl Iterator for IntoIter {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.inner.is_none() {
-            let inner = fs::read_dir(&self.path);
-            match inner {
-                Ok(inner) => self.inner = Some(inner),
-                Err(_) => {
-                    return None;
+            match self.scan_markdowns() {
+                Ok(mds) => {
+                    self.inner = Some(mds.into_iter());
                 }
+                Err(_) => return None,
             }
         }
 
@@ -202,11 +201,30 @@ impl Iterator for IntoIter {
 }
 
 impl IntoIter {
-    fn dir_entry_to_zettel(
-        entry: Result<DirEntry, std::io::Error>,
-    ) -> Result<Zettel, KastenError> {
-        let item = entry?;
-        let ze = Zettel::from_md(&item.path())?;
+    fn scan_markdowns(&self) -> Result<Vec<DirEntry>, KastenError> {
+        let buf = Path::new(&self.path);
+        let mut dirs = vec![buf.to_path_buf()];
+        let mut result = vec![];
+        loop {
+            if let Some(cur) = dirs.pop() {
+                let rd = fs::read_dir(cur)?;
+                for entry in rd {
+                    let item = entry?;
+                    if item.path().is_dir() {
+                        dirs.push(item.path().to_path_buf());
+                    } else {
+                        result.push(item);
+                    }
+                }
+            } else {
+                break;
+            }
+        }
+        Ok(result)
+    }
+
+    fn dir_entry_to_zettel(entry: DirEntry) -> Result<Zettel, KastenError> {
+        let ze = Zettel::from_md(&entry.path())?;
         Ok(ze)
     }
 }
