@@ -3,14 +3,18 @@ use std::io;
 use std::io::prelude::*;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
+use chrono::Local;
 use serde::{Deserialize, Serialize};
+use toml::value::Datetime;
 
 #[derive(Debug)]
 pub enum ZettelError {
     IOError(io::Error),
     ParseHeaderError(toml::de::Error),
     BuildHeaderError(std::fmt::Error),
+    DumpHeaderError(toml::ser::Error),
 }
 
 impl From<io::Error> for ZettelError {
@@ -22,6 +26,12 @@ impl From<io::Error> for ZettelError {
 impl From<toml::de::Error> for ZettelError {
     fn from(e: toml::de::Error) -> Self {
         Self::ParseHeaderError(e)
+    }
+}
+
+impl From<toml::ser::Error> for ZettelError {
+    fn from(e: toml::ser::Error) -> Self {
+        Self::DumpHeaderError(e)
     }
 }
 
@@ -43,6 +53,7 @@ pub struct Zettel {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ZettelHeader {
     title: String,
+    date: Option<Datetime>,
 
     #[allow(dead_code)]
     #[serde(skip)]
@@ -50,6 +61,15 @@ pub struct ZettelHeader {
 }
 
 impl ZettelHeader {
+    pub fn new(title: &str) -> Self {
+        let today = Local::now().format("%Y-%m-%d").to_string();
+        Self {
+            title: title.to_string(),
+            date: Some(Datetime::from_str(&today).unwrap()),
+            raw: "".to_string(),
+        }
+    }
+
     pub fn from_cursor(
         cursor: &mut Cursor<Vec<u8>>,
     ) -> Result<Self, ZettelError> {
@@ -101,8 +121,10 @@ impl Zettel {
 
     fn create_and_insert(path: &Path, title: &str) -> Result<(), ZettelError> {
         let mut file = File::create(path)?;
+        let header = ZettelHeader::new(title);
+        let hs = toml::to_string(&header)?;
         file.write(b"+++\n")?;
-        file.write(format!("title = \"{}\"\n", title).as_bytes())?;
+        file.write(hs.as_bytes())?;
         file.write(b"+++\n")?;
         Ok(())
     }

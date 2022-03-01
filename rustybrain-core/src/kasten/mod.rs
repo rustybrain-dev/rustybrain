@@ -5,6 +5,7 @@ use std::{
     time::SystemTime,
 };
 
+use chrono::Local;
 use tantivy::{
     collector::TopDocs,
     query::{QueryParser, QueryParserError},
@@ -152,11 +153,9 @@ impl Kasten {
 
     fn new_path(&self) -> PathBuf {
         let path = self.config.repo_path();
-        let gen = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap();
+        let gen = Local::now().format("%Y%m%d%H%M%S").to_string();
         Path::new(path)
-            .join(format!("notes/{}.md", gen.as_millis()))
+            .join(format!("notes/{}.md", gen))
             .to_path_buf()
     }
 }
