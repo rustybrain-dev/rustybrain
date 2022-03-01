@@ -124,7 +124,7 @@ impl Widgets<AppModel, ()> for AppWidgets {
     type Root = ApplicationWindow;
 
     fn init_view(
-        _model: &AppModel,
+        model: &AppModel,
         components: &AppComponents,
         sender: relm4::Sender<Msg>,
     ) -> Self {
@@ -153,7 +153,9 @@ impl Widgets<AppModel, ()> for AppWidgets {
             send!(sender, search::Msg::Show);
             true
         });
-        let trigger = ShortcutTrigger::parse_string("<Control>i").unwrap();
+        let trigger =
+            ShortcutTrigger::parse_string(model.config.shortcut().find())
+                .unwrap();
         let shortcut = Shortcut::builder()
             .trigger(&trigger)
             .action(&action)

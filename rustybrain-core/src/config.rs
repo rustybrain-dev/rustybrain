@@ -51,9 +51,16 @@ impl Display for ConfigError {
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
     repo: Repo,
+    shortcut: Shortcut,
 
     #[allow(dead_code)]
     colors: Color,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct Shortcut {
+    find: String,
+    insert: String,
 }
 
 impl Config {
@@ -64,6 +71,20 @@ impl Config {
 
     pub fn repo_path(&self) -> &str {
         &self.repo.path
+    }
+
+    pub fn shortcut(&self) -> &Shortcut {
+        &self.shortcut
+    }
+}
+
+impl Shortcut {
+    pub fn find(&self) -> &str {
+        &self.find
+    }
+
+    pub fn insert(&self) -> &str {
+        &self.insert
     }
 }
 
@@ -137,6 +158,10 @@ pub struct Repo {
 const DEFAULT_CONFIG_CONTENT: &'static str = r###"
 [repo]
 path = "RustyBrain"
+
+[shortcut]
+find = "<Control><Shift>f"
+insert = "<Control>i"
 
 [colors]
 primary = "#546E7A"
