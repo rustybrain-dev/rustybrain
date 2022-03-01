@@ -26,6 +26,7 @@ pub enum Msg {
     Show,
     Changed(String),
     Search(Rc<RefCell<Kasten>>, String),
+    Activate(Option<Zettel>),
 }
 
 pub struct Search {
@@ -79,6 +80,12 @@ impl ComponentUpdate<AppModel> for Model {
             Msg::Show => self.dialog.show(),
             Msg::Search(k, s) => {
                 self.handle_search(&k.borrow(), parent_sender, &s)
+            }
+            Msg::Activate(item) => {
+                if let Some(z) = item {
+                    send!(parent_sender, super::Msg::ChangeZettel(z));
+                    self.dialog.hide();
+                }
             }
         }
     }
@@ -202,7 +209,7 @@ impl Widgets<Model, AppModel> for Search {
         self.dialog.clone()
     }
 
-    fn view(&mut self, model: &Model, _sender: relm4::Sender<Msg>) {
+    fn view(&mut self, model: &Model, sender: relm4::Sender<Msg>) {
         loop {
             match self.list_box.last_child() {
                 Some(c) => self.list_box.remove(&c),
@@ -210,21 +217,38 @@ impl Widgets<Model, AppModel> for Search {
             }
         }
         if model.searching != "" {
-            self.list_box.append(&self.new_list_row(model));
+            self.list_box
+                .append(&self.new_list_row(model, sender.clone()));
         }
 
         for item in model.zettels.iter() {
             if model.inserting {
-                self.list_box.append(&self.row(item.title(), "Insert"));
+                self.list_box.append(&self.row(
+                    item.title(),
+                    "Insert",
+                    Some(item.clone()),
+                    sender.clone(),
+                ));
             } else {
-                self.list_box.append(&self.row(item.title(), "Go"));
+                self.list_box.append(&self.row(
+                    item.title(),
+                    "Go",
+                    Some(item.clone()),
+                    sender.clone(),
+                ));
             }
         }
     }
 }
 
 impl Search {
-    fn row(&self, item: &str, btn_label: &str) -> gtk::ListBoxRow {
+    fn row(
+        &self,
+        item: &str,
+        btn_label: &str,
+        zettel: Option<Zettel>,
+        sender: relm4::Sender<Msg>,
+    ) -> gtk::ListBoxRow {
         let box_ = gtk::Box::builder()
             .orientation(gtk::Orientation::Horizontal)
             .hexpand(true)
@@ -236,12 +260,19 @@ impl Search {
             .build();
 
         let btn = gtk::Button::builder().label(btn_label).build();
+        btn.connect_clicked(move |_| {
+            send!(sender, Msg::Activate(zettel.clone()));
+        });
         box_.append(&label);
         box_.append(&btn);
         gtk::ListBoxRow::builder().child(&box_).build()
     }
 
-    fn new_list_row(&self, model: &Model) -> gtk::ListBoxRow {
-        self.row(&model.searching, "New")
+    fn new_list_row(
+        &self,
+        model: &Model,
+        sender: relm4::Sender<Msg>,
+    ) -> gtk::ListBoxRow {
+        self.row(&model.searching, "New", None, sender)
     }
 }
