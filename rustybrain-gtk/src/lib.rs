@@ -142,9 +142,9 @@ impl Widgets<AppModel, ()> for AppWidgets {
             .vexpand(true)
             .build();
 
-        box_.append(components.listview.root_widget());
+        // box_.append(components.listview.root_widget());
         box_.append(components.editor.root_widget());
-        box_.append(components.backlinks.root_widget());
+        // box_.append(components.backlinks.root_widget());
 
         window.set_child(Some(&box_));
 

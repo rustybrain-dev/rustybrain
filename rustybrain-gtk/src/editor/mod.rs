@@ -54,7 +54,7 @@ impl relm4::Model for Model {
 }
 
 pub struct Editor {
-    window: gtk::ScrolledWindow,
+    window: gtk::Box,
     title: gtk::Entry,
 }
 
@@ -189,7 +189,7 @@ impl ComponentUpdate<super::AppModel> for Model {
 }
 
 impl Widgets<Model, super::AppModel> for Editor {
-    type Root = gtk::ScrolledWindow;
+    type Root = gtk::Box;
 
     fn root_widget(&self) -> Self::Root {
         self.window.clone()
@@ -214,13 +214,13 @@ impl Widgets<Model, super::AppModel> for Editor {
             .build();
 
         box_.append(&entry);
-        box_.append(&model.view);
 
         let window = ScrolledWindow::builder()
             .hexpand(true)
             .vexpand(true)
-            .child(&box_)
+            .child(&model.view)
             .build();
+        box_.append(&window);
 
         let s = sender.clone();
         model
@@ -240,7 +240,7 @@ impl Widgets<Model, super::AppModel> for Editor {
         });
 
         Editor {
-            window,
+            window: box_,
             title: entry,
         }
     }
