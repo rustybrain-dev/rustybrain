@@ -1,4 +1,3 @@
-use std::fmt::Write;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
@@ -71,7 +70,7 @@ impl ZettelHeader {
                 if line_buf.trim_start_matches("+").trim().len() == 0 {
                     return Ok(header);
                 }
-                header.write_str(&line_buf)?;
+                std::fmt::Write::write_str(&mut header, &line_buf)?;
             }
         }
         Ok(header)
@@ -93,6 +92,19 @@ impl Zettel {
             content,
             link_to: vec![],
         })
+    }
+
+    pub fn create(path: &Path, title: &str) -> Result<Self, ZettelError> {
+        Self::create_and_insert(path, title)?;
+        Self::from_md(path)
+    }
+
+    fn create_and_insert(path: &Path, title: &str) -> Result<(), ZettelError> {
+        let mut file = File::create(path)?;
+        file.write(b"+++\n")?;
+        file.write(format!("title = \"{}\"\n", title).as_bytes())?;
+        file.write(b"+++\n")?;
+        Ok(())
     }
 
     pub fn path(&self) -> &Path {

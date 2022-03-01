@@ -1,6 +1,8 @@
 use std::{
     collections::HashSet,
-    fs::{self, DirEntry, ReadDir},
+    fs::{self, create_dir_all, DirEntry, ReadDir},
+    path::{Path, PathBuf},
+    time::SystemTime,
 };
 
 use tantivy::{
@@ -83,19 +85,24 @@ impl Kasten {
     }
 
     fn build_index(&self) -> Result<(), KastenError> {
+        for entry in self.iter() {
+            let z = entry?;
+            self.add_doc(z)?;
+        }
+        Ok(())
+    }
+
+    fn add_doc(&self, z: Zettel) -> Result<(), KastenError> {
         let mut index_writer = self.index.writer(50_000_000)?;
         let title = self.title;
         let body = self.body;
-        for entry in self.clone() {
-            let z = entry?;
-            let mut doc = Document::default();
-            doc.add_text(title, z.title());
-            doc.add_text(body, z.content());
-            if let Some(p) = z.path().to_str() {
-                doc.add_text(self.path, p);
-            }
-            index_writer.add_document(doc);
+        let mut doc = Document::default();
+        doc.add_text(title, z.title());
+        doc.add_text(body, z.content());
+        if let Some(p) = z.path().to_str() {
+            doc.add_text(self.path, p);
         }
+        index_writer.add_document(doc);
         index_writer.commit()?;
         Ok(())
     }
@@ -131,6 +138,26 @@ impl Kasten {
             inner: None,
             path: self.config.repo_path().to_string(),
         }
+    }
+
+    pub fn create(&self, title: &str) -> Result<Zettel, KastenError> {
+        let path = self.new_path();
+        if let Some(dir) = path.as_path().parent() {
+            create_dir_all(dir)?;
+        }
+        let z = Zettel::create(&path, title)?;
+        self.add_doc(z.clone())?;
+        Ok(z)
+    }
+
+    fn new_path(&self) -> PathBuf {
+        let path = self.config.repo_path();
+        let gen = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap();
+        Path::new(path)
+            .join(format!("notes/{}.md", gen.as_millis()))
+            .to_path_buf()
     }
 }
 

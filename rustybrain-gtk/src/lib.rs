@@ -30,6 +30,7 @@ pub enum Msg {
     StartSearch,
     Init(ApplicationWindow),
     ChangeZettel(Zettel),
+    NewZettel(String),
     ShowMsg(MessageType, String),
 }
 
@@ -83,7 +84,7 @@ impl AppUpdate for AppModel {
         &mut self,
         msg: Self::Msg,
         components: &Self::Components,
-        _sender: relm4::Sender<Self::Msg>,
+        sender: relm4::Sender<Self::Msg>,
     ) -> bool {
         match msg {
             Msg::Quit => todo!(),
@@ -101,6 +102,18 @@ impl AppUpdate for AppModel {
             }
             Msg::ShowMsg(t, s) => {
                 send!(components.msg.sender(), msg::Msg::Show(t, s))
+            }
+            Msg::NewZettel(title) => {
+                match self.kasten.borrow().create(&title) {
+                    Ok(z) => send!(sender, Msg::ChangeZettel(z)),
+                    Err(e) => send!(
+                        sender,
+                        Msg::ShowMsg(
+                            MessageType::Error,
+                            format!("Create note failed: {:?}!", e).to_string()
+                        )
+                    ),
+                }
             }
         }
         true

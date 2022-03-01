@@ -82,9 +82,14 @@ impl ComponentUpdate<AppModel> for Model {
                 self.handle_search(&k.borrow(), parent_sender, &s)
             }
             Msg::Activate(item) => {
+                self.dialog.hide();
                 if let Some(z) = item {
                     send!(parent_sender, super::Msg::ChangeZettel(z));
-                    self.dialog.hide();
+                } else {
+                    send!(
+                        parent_sender,
+                        super::Msg::NewZettel(self.searching.to_string())
+                    );
                 }
             }
         }
