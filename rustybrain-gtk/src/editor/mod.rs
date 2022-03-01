@@ -1,9 +1,14 @@
 mod block;
 mod style;
 
-use gtk::{prelude::*, ScrolledWindow, TextMark};
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use gtk::{
+    prelude::*, EventControllerFocus, MessageType, ScrolledWindow, TextMark,
+};
 use relm4::{send, ComponentUpdate, Components, Widgets};
-use rustybrain_core::config::Config;
+use rustybrain_core::kasten::Kasten;
 use rustybrain_core::md::TreeCursor;
 use rustybrain_core::md::{Node, Tree};
 use rustybrain_core::zettel::Zettel;
@@ -13,19 +18,23 @@ use self::block::Blocking;
 pub enum Msg {
     Open(Zettel),
     Changed,
+    Save,
     Cursor,
+    EditTitle,
+    DoneEditTitle,
     InsertText(TextMark, String),
 }
 
 pub struct Model {
     tree: Option<Tree>,
     zettel: Option<Zettel>,
+    kasten: Rc<RefCell<Kasten>>,
 
-    #[allow(dead_code)]
-    config: Config,
     buffer: gtk::TextBuffer,
     title: gtk::EntryBuffer,
     view: gtk::TextView,
+
+    editing_title: bool,
 
     #[allow(dead_code)]
     table: gtk::TextTagTable,
@@ -54,8 +63,11 @@ impl relm4::Model for Model {
 }
 
 pub struct Editor {
-    window: gtk::Box,
-    title: gtk::Entry,
+    layout: gtk::Box,
+    main_win: gtk::ScrolledWindow,
+    title_in: gtk::Entry,
+    title_label: gtk::Label,
+    title_show: gtk::Box,
 }
 
 impl Model {
@@ -78,10 +90,6 @@ impl Model {
         self.buffer.apply_tag_by_name("p", &start, &end);
 
         let text = self.buffer.text(&start, &end, true);
-
-        if let Some(zettel) = self.zettel.as_mut() {
-            zettel.set_content(&text);
-        }
 
         if let Ok(tree) = rustybrain_core::md::parse(text.as_str(), None) {
             self.tree = tree;
@@ -153,8 +161,9 @@ impl ComponentUpdate<super::AppModel> for Model {
         let mut model = Model {
             tree: None,
             zettel: None,
-            config: parent_model.config.clone(),
+            kasten: parent_model.kasten.clone(),
             blocks: vec![],
+            editing_title: false,
             buffer,
             title,
             table,
@@ -172,9 +181,15 @@ impl ComponentUpdate<super::AppModel> for Model {
         _parent_sender: relm4::Sender<super::Msg>,
     ) {
         match msg {
-            Msg::Changed => self.on_buffer_changed(),
+            Msg::Changed => {
+                self.buffer.set_modified(true);
+                self.on_buffer_changed()
+            }
             Msg::Cursor => self.on_cursor_notify(),
-            Msg::Open(z) => self.open_zettel(z),
+            Msg::Open(z) => {
+                self.editing_title = false;
+                self.open_zettel(z)
+            }
             Msg::InsertText(m, s) => {
                 if s == "@" {
                     let mut iter = self.buffer.iter_at_mark(&m);
@@ -184,6 +199,32 @@ impl ComponentUpdate<super::AppModel> for Model {
                     self.view.add_child_at_anchor(&child, &anchor);
                 }
             }
+            Msg::Save => {
+                if self.buffer.is_modified() {
+                    if let Some(zettel) = self.zettel.as_mut() {
+                        let start = self.buffer.start_iter();
+                        let end = self.buffer.end_iter();
+                        let text = self.buffer.text(&start, &end, true);
+                        zettel.set_content(&text);
+                        zettel.set_title(&self.title.text());
+                        let mut kasten = self.kasten.borrow_mut();
+                        if let Err(err) = kasten.save(zettel) {
+                            send!(
+                                _parent_sender,
+                                super::Msg::ShowMsg(
+                                    MessageType::Error,
+                                    format!("Save note failed: {:?}", err)
+                                )
+                            );
+                        }
+                    }
+                    self.buffer.set_modified(false);
+                }
+            }
+            Msg::EditTitle => self.editing_title = true,
+            Msg::DoneEditTitle => {
+                self.editing_title = false;
+            }
         }
     }
 }
@@ -192,7 +233,7 @@ impl Widgets<Model, super::AppModel> for Editor {
     type Root = gtk::Box;
 
     fn root_widget(&self) -> Self::Root {
-        self.window.clone()
+        self.layout.clone()
     }
 
     fn init_view(
@@ -206,6 +247,8 @@ impl Widgets<Model, super::AppModel> for Editor {
             .margin_end(10)
             .build();
 
+        let label = gtk::Label::builder().hexpand(true).vexpand(false).build();
+
         let entry = gtk::Entry::builder()
             .hexpand(true)
             .vexpand(false)
@@ -213,14 +256,16 @@ impl Widgets<Model, super::AppModel> for Editor {
             .buffer(&model.title)
             .build();
 
-        box_.append(&entry);
+        let focus_ctrl = EventControllerFocus::builder().build();
+        let s = sender.clone();
+        focus_ctrl.connect_leave(move |_| send!(s, Msg::DoneEditTitle));
+        entry.add_controller(&focus_ctrl);
 
         let window = ScrolledWindow::builder()
             .hexpand(true)
             .vexpand(true)
             .child(&model.view)
             .build();
-        box_.append(&window);
 
         let s = sender.clone();
         model
@@ -235,21 +280,53 @@ impl Widgets<Model, super::AppModel> for Editor {
             )
         });
 
-        model.buffer.connect_cursor_position_notify(move |_| {
-            send!(sender.clone(), Msg::Cursor)
-        });
+        let s = sender.clone();
+        model
+            .buffer
+            .connect_cursor_position_notify(move |_| send!(s, Msg::Cursor));
+
+        let title_show = gtk::Box::builder()
+            .orientation(gtk::Orientation::Horizontal)
+            .hexpand(true)
+            .vexpand(false)
+            .build();
+        let edit_btn = gtk::Button::builder()
+            .label("Edit")
+            .vexpand(false)
+            .hexpand(false)
+            .build();
+        let s = sender.clone();
+        edit_btn.connect_clicked(move |_| send!(s, Msg::EditTitle));
+        title_show.append(&label);
+        title_show.append(&edit_btn);
 
         Editor {
-            window: box_,
-            title: entry,
+            layout: box_,
+            title_in: entry,
+            title_label: label,
+            title_show,
+            main_win: window,
         }
     }
 
     fn view(&mut self, model: &Model, _sender: relm4::Sender<Msg>) {
-        if model.title.text() == "" {
-            self.title.set_placeholder_text(Some("Title"))
+        loop {
+            match self.layout.last_child() {
+                Some(c) => self.layout.remove(&c),
+                None => break,
+            }
+        }
+        if model.editing_title {
+            self.layout.append(&self.title_in);
         } else {
-            self.title.set_placeholder_text(None)
+            self.layout.append(&self.title_show);
+        }
+        self.layout.append(&self.main_win);
+        self.title_label.set_text(&model.title.text());
+        if model.title.text() == "" {
+            self.title_in.set_placeholder_text(Some("Title"))
+        } else {
+            self.title_in.set_placeholder_text(None)
         }
     }
 }
