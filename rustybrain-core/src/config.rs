@@ -61,6 +61,7 @@ pub struct Config {
 pub struct Shortcut {
     find: String,
     insert: String,
+    quit: String,
 }
 
 impl Config {
@@ -85,6 +86,10 @@ impl Shortcut {
 
     pub fn insert(&self) -> &str {
         &self.insert
+    }
+
+    pub fn quit(&self) -> &str {
+        &self.quit
     }
 }
 
@@ -162,6 +167,7 @@ path = "RustyBrain"
 [shortcut]
 find = "<Control><Shift>f"
 insert = "<Control>i"
+quit = "<Meta>q"
 
 [colors]
 primary = "#546E7A"
