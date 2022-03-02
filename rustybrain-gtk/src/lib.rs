@@ -36,6 +36,9 @@ pub enum Msg {
 }
 
 pub struct AppModel {
+    show_list: bool,
+    show_back: bool,
+
     config: Config,
     kasten: Rc<RefCell<Kasten>>,
 }
@@ -68,8 +71,10 @@ impl Components<AppModel> for AppComponents {
 pub struct AppWidgets {
     window: ApplicationWindow,
 
-    #[allow(dead_code)]
-    box_: gtk::Box,
+    main_layout: gtk::Box,
+    left: gtk::ScrolledWindow,
+    center: gtk::Box,
+    right: gtk::ScrolledWindow,
 }
 
 impl Model for AppModel {
@@ -143,9 +148,9 @@ impl Widgets<AppModel, ()> for AppWidgets {
             .vexpand(true)
             .build();
 
-        box_.append(components.listview.root_widget());
-        box_.append(components.editor.root_widget());
-        box_.append(components.backlinks.root_widget());
+        let left = components.listview.root_widget().clone();
+        let center = components.editor.root_widget().clone();
+        let right = components.backlinks.root_widget().clone();
 
         window.set_child(Some(&box_));
 
@@ -165,14 +170,34 @@ impl Widgets<AppModel, ()> for AppWidgets {
         ));
         window.add_controller(&shortcut_ctrl);
 
-        AppWidgets { window, box_ }
+        AppWidgets {
+            window,
+            main_layout: box_,
+            left,
+            right,
+            center,
+        }
     }
 
     fn root_widget(&self) -> Self::Root {
         self.window.clone()
     }
 
-    fn view(&mut self, _model: &AppModel, _sender: relm4::Sender<Msg>) {
+    fn view(&mut self, model: &AppModel, _sender: relm4::Sender<Msg>) {
+        loop {
+            match self.main_layout.last_child() {
+                Some(c) => self.main_layout.remove(&c),
+                None => break,
+            }
+        }
+        if model.show_list {
+            self.main_layout.append(&self.left);
+        }
+        self.main_layout.append(&self.center);
+        if model.show_back {
+            self.main_layout.append(&self.right);
+        }
+
         let provider = CssProvider::new();
         provider.load_from_data(CSS.as_bytes());
         StyleContext::add_provider_for_display(
@@ -205,6 +230,8 @@ body {
 
 pub fn run(config: &Config) {
     let model = AppModel {
+        show_list: false,
+        show_back: false,
         config: config.clone(),
         kasten: Rc::new(RefCell::new(Kasten::new(config.clone()).unwrap())),
     };

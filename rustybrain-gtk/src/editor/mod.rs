@@ -178,7 +178,7 @@ impl ComponentUpdate<super::AppModel> for Model {
         msg: Self::Msg,
         _components: &Self::Components,
         _sender: relm4::Sender<Self::Msg>,
-        _parent_sender: relm4::Sender<super::Msg>,
+        parent_sender: relm4::Sender<super::Msg>,
     ) {
         match msg {
             Msg::Changed => {
@@ -210,7 +210,7 @@ impl ComponentUpdate<super::AppModel> for Model {
                         let mut kasten = self.kasten.borrow_mut();
                         if let Err(err) = kasten.save(zettel) {
                             send!(
-                                _parent_sender,
+                                parent_sender,
                                 super::Msg::ShowMsg(
                                     MessageType::Error,
                                     format!("Save note failed: {:?}", err)
@@ -264,10 +264,15 @@ impl Widgets<Model, super::AppModel> for Editor {
         let window = ScrolledWindow::builder()
             .hexpand(true)
             .vexpand(true)
+            .margin_start(10)
+            .margin_end(10)
+            .margin_top(10)
+            .margin_bottom(10)
             .child(&model.view)
             .build();
 
         let s = sender.clone();
+
         model
             .buffer
             .connect_changed(move |_| send!(s, Msg::Changed));
@@ -290,11 +295,7 @@ impl Widgets<Model, super::AppModel> for Editor {
             .hexpand(true)
             .vexpand(false)
             .build();
-        let edit_btn = gtk::Button::builder()
-            .label("Edit")
-            .vexpand(false)
-            .hexpand(false)
-            .build();
+        let edit_btn = gtk::Button::builder().label("Edit").build();
         let s = sender.clone();
         edit_btn.connect_clicked(move |_| send!(s, Msg::EditTitle));
         title_show.append(&label);
