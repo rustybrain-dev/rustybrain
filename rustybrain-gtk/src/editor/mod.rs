@@ -195,7 +195,8 @@ impl ComponentUpdate<super::AppModel> for Model {
                 self.open_zettel(z)
             }
             Msg::Insert(z) => {
-                let relative_path = self.kasten.borrow().zettel_path(&z);
+                let relative_path =
+                    z.in_repo_path(&self.kasten.borrow().repo_path());
                 self.buffer.insert_at_cursor(&format!(
                     "[{}](@/{})",
                     z.title(),

@@ -161,6 +161,15 @@ impl Zettel {
         self.path.as_path()
     }
 
+    pub fn in_repo_path(&self, repo_path: &str) -> String {
+        if let Ok(p) = self.path().strip_prefix(repo_path) {
+            if let Some(p) = p.to_str() {
+                return p.to_string();
+            }
+        }
+        "unknow".to_string()
+    }
+
     pub fn title(&self) -> &str {
         &self.header.title
     }
