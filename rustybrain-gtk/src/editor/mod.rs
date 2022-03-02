@@ -322,6 +322,7 @@ impl Widgets<Model, super::AppModel> for Editor {
             self.layout.append(&self.title_show);
         }
         self.layout.append(&self.main_win);
+        model.view.grab_focus();
         self.title_label.set_text(&model.title.text());
         if model.title.text() == "" {
             self.title_in.set_placeholder_text(Some("Title"))
