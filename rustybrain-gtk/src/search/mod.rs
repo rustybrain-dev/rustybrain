@@ -26,11 +26,12 @@ pub struct Model {
 
 pub enum Msg {
     Init(ApplicationWindow, Rc<RefCell<Kasten>>),
-    Show,
+    Show(bool),
     Hide,
     Changed(String),
     Search(Rc<RefCell<Kasten>>, String),
     Activate(Option<Zettel>),
+    Insert(Option<Zettel>),
 }
 
 pub struct Search {
@@ -68,7 +69,10 @@ impl ComponentUpdate<AppModel> for Model {
         parent_sender: relm4::Sender<super::Msg>,
     ) {
         match msg {
-            Msg::Show => self.show = true,
+            Msg::Show(inserting) => {
+                self.show = true;
+                self.inserting = inserting;
+            }
             Msg::Hide => self.show = false,
             Msg::Init(w, k) => {
                 self.app_win = Some(w);
@@ -93,6 +97,12 @@ impl ComponentUpdate<AppModel> for Model {
                         parent_sender,
                         super::Msg::NewZettel(self.searching.to_string())
                     );
+                }
+            }
+            Msg::Insert(item) => {
+                send!(sender, Msg::Hide);
+                if let Some(z) = item {
+                    send!(parent_sender, super::Msg::InsertZettel(z));
                 }
             }
         }
@@ -245,14 +255,14 @@ impl Widgets<Model, AppModel> for Search {
             if model.inserting {
                 self.list_box.append(&self.row(
                     item.title(),
-                    "Insert",
+                    true,
                     Some(item.clone()),
                     sender.clone(),
                 ));
             } else {
                 self.list_box.append(&self.row(
                     item.title(),
-                    "Go",
+                    false,
                     Some(item.clone()),
                     sender.clone(),
                 ));
@@ -265,10 +275,11 @@ impl Search {
     fn row(
         &self,
         item: &str,
-        btn_label: &str,
+        inserting: bool,
         zettel: Option<Zettel>,
         sender: relm4::Sender<Msg>,
     ) -> gtk::ListBoxRow {
+        let btn_label = if inserting { "Insert" } else { "Go" };
         let box_ = gtk::Box::builder()
             .orientation(gtk::Orientation::Horizontal)
             .hexpand(true)
@@ -281,7 +292,11 @@ impl Search {
 
         let btn = gtk::Button::builder().label(btn_label).build();
         btn.connect_clicked(move |_| {
-            send!(sender, Msg::Activate(zettel.clone()));
+            if inserting {
+                send!(sender, Msg::Insert(zettel.clone()));
+            } else {
+                send!(sender, Msg::Activate(zettel.clone()));
+            }
         });
         box_.append(&label);
         box_.append(&btn);
@@ -293,6 +308,6 @@ impl Search {
         model: &Model,
         sender: relm4::Sender<Msg>,
     ) -> gtk::ListBoxRow {
-        self.row(&model.searching, "New", None, sender)
+        self.row(&model.searching, false, None, sender)
     }
 }

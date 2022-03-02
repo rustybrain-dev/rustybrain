@@ -29,8 +29,10 @@ use rustybrain_core::zettel::Zettel;
 pub enum Msg {
     Quit,
     StartSearch,
+    StartInsert,
     Init(ApplicationWindow),
     ChangeZettel(Zettel),
+    InsertZettel(Zettel),
     NewZettel(String),
     ShowMsg(MessageType, String),
 }
@@ -97,6 +99,9 @@ impl AppUpdate for AppModel {
             Msg::ChangeZettel(z) => {
                 send!(components.editor.sender(), editor::Msg::Open(z))
             }
+            Msg::InsertZettel(z) => {
+                send!(components.editor.sender(), editor::Msg::Insert(z))
+            }
             Msg::Init(w) => {
                 send!(
                     components.search.sender(),
@@ -104,7 +109,10 @@ impl AppUpdate for AppModel {
                 )
             }
             Msg::StartSearch => {
-                send!(components.search.sender(), search::Msg::Show)
+                send!(components.search.sender(), search::Msg::Show(false))
+            }
+            Msg::StartInsert => {
+                send!(components.search.sender(), search::Msg::Show(true))
             }
             Msg::ShowMsg(t, s) => {
                 send!(components.msg.sender(), msg::Msg::Show(t, s))
@@ -163,6 +171,11 @@ impl Widgets<AppModel, ()> for AppWidgets {
             sender.clone(),
             c.shortcut().find(),
             Msg::StartSearch,
+        ));
+        shortcut_ctrl.add_shortcut(&Self::bind_key(
+            sender.clone(),
+            c.shortcut().insert(),
+            Msg::StartInsert,
         ));
         shortcut_ctrl.add_shortcut(&Self::bind_key(
             sender.clone(),

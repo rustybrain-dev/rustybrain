@@ -174,6 +174,15 @@ impl Kasten {
             .join(format!("notes/{}.md", gen))
             .to_path_buf()
     }
+
+    pub fn zettel_path(&self, z: &Zettel) -> String {
+        if let Ok(p) = z.path().strip_prefix(self.config.borrow().repo_path()) {
+            if let Some(p) = p.to_str() {
+                return p.to_string();
+            }
+        }
+        "unknow".to_string()
+    }
 }
 
 impl IntoIterator for Kasten {

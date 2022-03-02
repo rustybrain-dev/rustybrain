@@ -18,6 +18,7 @@ use self::block::Blocking;
 
 pub enum Msg {
     Open(Zettel),
+    Insert(Zettel),
     Changed,
     Save,
     Cursor,
@@ -192,6 +193,14 @@ impl ComponentUpdate<super::AppModel> for Model {
             Msg::Open(z) => {
                 self.editing_title = false;
                 self.open_zettel(z)
+            }
+            Msg::Insert(z) => {
+                let relative_path = self.kasten.borrow().zettel_path(&z);
+                self.buffer.insert_at_cursor(&format!(
+                    "[{}](@/{})",
+                    z.title(),
+                    relative_path
+                ));
             }
             Msg::InsertText(m, s) => {
                 if s == "@" {
