@@ -4,6 +4,7 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::io::Cursor;
+use std::path::StripPrefixError;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -17,6 +18,14 @@ pub enum ZettelError {
     ParseHeaderError(toml::de::Error),
     BuildHeaderError(std::fmt::Error),
     DumpHeaderError(toml::ser::Error),
+    IdExtractError(StripPrefixError),
+    IdEmptyError,
+}
+
+impl From<StripPrefixError> for ZettelError {
+    fn from(e: StripPrefixError) -> Self {
+        Self::IdExtractError(e)
+    }
 }
 
 impl From<io::Error> for ZettelError {
@@ -45,6 +54,7 @@ impl From<std::fmt::Error> for ZettelError {
 
 #[derive(Debug, Clone)]
 pub struct Zettel {
+    id: String,
     path: PathBuf,
     header: ZettelHeader,
     content: String,
@@ -100,7 +110,7 @@ impl ZettelHeader {
 }
 
 impl Zettel {
-    pub fn from_md(path: &Path) -> Result<Self, ZettelError> {
+    pub fn from_md(repo_path: &str, path: &Path) -> Result<Self, ZettelError> {
         let mut file = File::open(path)?;
         let mut buf = vec![];
         file.read_to_end(&mut buf)?;
@@ -108,7 +118,9 @@ impl Zettel {
         let header = ZettelHeader::from_cursor(&mut cursor)?;
         let mut content: String = String::new();
         cursor.read_to_string(&mut content)?;
+        let id = Self::in_repo_path(path, repo_path)?;
         Ok(Zettel {
+            id,
             path: path.to_path_buf(),
             header,
             content,
@@ -116,9 +128,13 @@ impl Zettel {
         })
     }
 
-    pub fn create(path: &Path, title: &str) -> Result<Self, ZettelError> {
+    pub fn create(
+        repo_path: &str,
+        path: &Path,
+        title: &str,
+    ) -> Result<Self, ZettelError> {
         Self::create_and_insert(path, title)?;
-        Self::from_md(path)
+        Self::from_md(repo_path, path)
     }
 
     fn create_and_insert(path: &Path, title: &str) -> Result<(), ZettelError> {
@@ -157,17 +173,23 @@ impl Zettel {
         dir.join(format!(".{}", f)).to_path_buf()
     }
 
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
     pub fn path(&self) -> &Path {
         self.path.as_path()
     }
 
-    pub fn in_repo_path(&self, repo_path: &str) -> String {
-        if let Ok(p) = self.path().strip_prefix(repo_path) {
-            if let Some(p) = p.to_str() {
-                return p.to_string();
-            }
+    fn in_repo_path(
+        path: &Path,
+        repo_path: &str,
+    ) -> Result<String, ZettelError> {
+        let p = path.strip_prefix(repo_path)?;
+        if let Some(p) = p.to_str() {
+            return Ok(format!("@/{}", p));
         }
-        "unknow".to_string()
+        Err(ZettelError::IdEmptyError)
     }
 
     pub fn title(&self) -> &str {

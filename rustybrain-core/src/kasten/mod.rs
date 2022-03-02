@@ -146,7 +146,7 @@ impl Kasten {
         let c = (*self.config).borrow();
         IntoIter {
             inner: None,
-            path: c.repo_path().to_string(),
+            repo_path: c.repo_path().to_string(),
         }
     }
 
@@ -155,7 +155,7 @@ impl Kasten {
         if let Some(dir) = path.as_path().parent() {
             create_dir_all(dir)?;
         }
-        let z = Zettel::create(&path, title)?;
+        let z = Zettel::create(&self.repo_path(), &path, title)?;
         self.add_doc(z.clone())?;
         Ok(z)
     }
@@ -188,14 +188,14 @@ impl IntoIterator for Kasten {
         let c = (*self.config).borrow();
         IntoIter {
             inner: None,
-            path: c.repo_path().to_string(),
+            repo_path: c.repo_path().to_string(),
         }
     }
 }
 
 pub struct IntoIter {
     inner: Option<std::vec::IntoIter<DirEntry>>,
-    path: String,
+    repo_path: String,
 }
 
 impl Iterator for IntoIter {
@@ -213,7 +213,7 @@ impl Iterator for IntoIter {
 
         if let Some(inner) = self.inner.as_mut() {
             if let Some(entry) = inner.next() {
-                return Some(Self::dir_entry_to_zettel(entry));
+                return Some(self.dir_entry_to_zettel(entry));
             }
         }
         None
@@ -222,7 +222,7 @@ impl Iterator for IntoIter {
 
 impl IntoIter {
     fn scan_markdowns(&self) -> Result<Vec<DirEntry>, KastenError> {
-        let buf = Path::new(&self.path);
+        let buf = Path::new(&self.repo_path);
         let mut dirs = vec![buf.to_path_buf()];
         let mut result = vec![];
         loop {
@@ -258,8 +258,11 @@ impl IntoIter {
         Ok(result)
     }
 
-    fn dir_entry_to_zettel(entry: DirEntry) -> Result<Zettel, KastenError> {
-        let ze = Zettel::from_md(&entry.path())?;
+    fn dir_entry_to_zettel(
+        &self,
+        entry: DirEntry,
+    ) -> Result<Zettel, KastenError> {
+        let ze = Zettel::from_md(&self.repo_path, &entry.path())?;
         Ok(ze)
     }
 }
