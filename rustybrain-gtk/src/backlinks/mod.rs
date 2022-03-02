@@ -2,14 +2,10 @@ use gtk::prelude::*;
 use gtk::ScrolledWindow;
 use relm4::ComponentUpdate;
 use relm4::Widgets;
-use rustybrain_core::config::Config;
 
 use crate::AppModel;
 
-pub struct Model {
-    #[allow(dead_code)]
-    config: Config,
-}
+pub struct Model {}
 
 pub enum Msg {}
 
@@ -26,10 +22,8 @@ impl relm4::Model for Model {
 }
 
 impl ComponentUpdate<AppModel> for Model {
-    fn init_model(parent_model: &AppModel) -> Self {
-        Model {
-            config: parent_model.config.clone(),
-        }
+    fn init_model(_parent_model: &AppModel) -> Self {
+        Model {}
     }
 
     fn update(

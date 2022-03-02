@@ -1,7 +1,9 @@
 use std::{
+    cell::RefCell,
     collections::HashSet,
     fs::{self, create_dir_all, DirEntry},
     path::{Path, PathBuf},
+    rc::Rc,
     time::SystemTime,
 };
 
@@ -53,7 +55,7 @@ impl From<QueryParserError> for KastenError {
 
 #[derive(Clone)]
 pub struct Kasten {
-    config: Config,
+    config: Rc<RefCell<Config>>,
 
     #[allow(dead_code)]
     schema: Schema,
@@ -65,7 +67,7 @@ pub struct Kasten {
 }
 
 impl Kasten {
-    pub fn new(config: Config) -> Result<Self, KastenError> {
+    pub fn new(config: Rc<RefCell<Config>>) -> Result<Self, KastenError> {
         let mut schema_builder = Schema::builder();
         let title = schema_builder.add_text_field("title", TEXT | STORED);
         let path = schema_builder.add_text_field("path", TEXT | STORED);
@@ -141,9 +143,10 @@ impl Kasten {
     }
 
     pub fn iter(&self) -> IntoIter {
+        let c = (*self.config).borrow();
         IntoIter {
             inner: None,
-            path: self.config.repo_path().to_string(),
+            path: c.repo_path().to_string(),
         }
     }
 
@@ -164,7 +167,8 @@ impl Kasten {
     }
 
     fn new_path(&self) -> PathBuf {
-        let path = self.config.repo_path();
+        let c = (*self.config).borrow();
+        let path = c.repo_path();
         let gen = Local::now().format("%Y%m%d%H%M%S").to_string();
         Path::new(path)
             .join(format!("notes/{}.md", gen))
@@ -177,9 +181,10 @@ impl IntoIterator for Kasten {
     type IntoIter = IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
+        let c = (*self.config).borrow();
         IntoIter {
             inner: None,
-            path: self.config.repo_path().to_string(),
+            path: c.repo_path().to_string(),
         }
     }
 }

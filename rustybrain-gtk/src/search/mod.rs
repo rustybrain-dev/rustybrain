@@ -7,6 +7,7 @@ use gtk::{
 };
 use relm4::{send, ComponentUpdate, Widgets};
 use rustybrain_core::{
+    config::Config,
     kasten::{Kasten, KastenError},
     zettel::Zettel,
 };
@@ -20,6 +21,7 @@ pub struct Model {
     inserting: bool,
     show: bool,
     kasten: Option<Rc<RefCell<Kasten>>>,
+    config: Rc<RefCell<Config>>,
 }
 
 pub enum Msg {
@@ -45,7 +47,7 @@ impl relm4::Model for Model {
 }
 
 impl ComponentUpdate<AppModel> for Model {
-    fn init_model(_parent_model: &AppModel) -> Self {
+    fn init_model(parent_model: &AppModel) -> Self {
         let zettels = vec![];
         Model {
             app_win: None,
@@ -53,6 +55,7 @@ impl ComponentUpdate<AppModel> for Model {
             show: false,
             searching: "".to_string(),
             inserting: false,
+            config: parent_model.config.clone(),
             zettels,
         }
     }
@@ -170,7 +173,7 @@ impl Widgets<Model, AppModel> for Search {
     type Root = Dialog;
 
     fn init_view(
-        _model: &Model,
+        model: &Model,
         _components: &(),
         sender: relm4::Sender<Msg>,
     ) -> Self {
@@ -179,7 +182,13 @@ impl Widgets<Model, AppModel> for Search {
             .decorated(true)
             .modal(true)
             .build();
-        let entry = gtk::SearchEntry::builder().hexpand(true).build();
+        let c = (*model.config).borrow();
+        let f = c.shortcut().find();
+        let i = c.shortcut().insert();
+        let entry = gtk::SearchEntry::builder()
+            .hexpand(true)
+            .placeholder_text(&format!("Press {} or {} to start search!", f, i))
+            .build();
         let box_ = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
             .build();

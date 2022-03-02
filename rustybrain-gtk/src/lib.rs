@@ -39,7 +39,7 @@ pub struct AppModel {
     show_list: bool,
     show_back: bool,
 
-    config: Config,
+    config: Rc<RefCell<Config>>,
     kasten: Rc<RefCell<Kasten>>,
 }
 
@@ -158,17 +158,20 @@ impl Widgets<AppModel, ()> for AppWidgets {
             .scope(gtk::ShortcutScope::Global)
             .build();
 
+        let c = (*model.config).borrow();
         shortcut_ctrl.add_shortcut(&Self::bind_key(
             sender.clone(),
-            model.config.shortcut().find(),
+            c.shortcut().find(),
             Msg::StartSearch,
         ));
         shortcut_ctrl.add_shortcut(&Self::bind_key(
-            sender,
-            model.config.shortcut().quit(),
+            sender.clone(),
+            c.shortcut().quit(),
             Msg::Quit,
         ));
         window.add_controller(&shortcut_ctrl);
+        let s = sender.clone();
+        window.connect_show(move |_| send!(s, Msg::StartSearch));
 
         AppWidgets {
             window,
@@ -228,7 +231,7 @@ body {
     }
 "#;
 
-pub fn run(config: &Config) {
+pub fn run(config: Rc<RefCell<Config>>) {
     let model = AppModel {
         show_list: false,
         show_back: false,

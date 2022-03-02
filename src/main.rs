@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use color_eyre;
 
 use rustybrain_core::config::ConfigLoader;
@@ -9,6 +11,6 @@ fn main() -> Result<(), String> {
     }
     color_eyre::install().unwrap();
     let config = ConfigLoader::new().load()?;
-    run(&config);
+    run(Rc::new(RefCell::new(config)));
     Ok(())
 }
