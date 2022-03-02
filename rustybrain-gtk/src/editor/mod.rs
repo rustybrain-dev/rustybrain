@@ -5,7 +5,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use gtk::{
-    prelude::*, EventControllerFocus, MessageType, ScrolledWindow, TextMark,
+    prelude::*, ActionBar, EventControllerFocus, MessageType, ScrolledWindow,
+    TextMark,
 };
 use relm4::{send, ComponentUpdate, Components, Widgets};
 use rustybrain_core::kasten::Kasten;
@@ -68,6 +69,8 @@ pub struct Editor {
     title_in: gtk::Entry,
     title_label: gtk::Label,
     title_show: gtk::Box,
+    action_bar: gtk::ActionBar,
+    save_btn: gtk::Button,
 }
 
 impl Model {
@@ -301,12 +304,20 @@ impl Widgets<Model, super::AppModel> for Editor {
         title_show.append(&label);
         title_show.append(&edit_btn);
 
+        let action_bar = ActionBar::builder().build();
+        let save_btn = gtk::Button::builder().label("Save").build();
+        let s = sender.clone();
+        save_btn.connect_clicked(move |_| send!(s, Msg::Save));
+        action_bar.pack_end(&save_btn);
+
         Editor {
             layout: box_,
             title_in: entry,
             title_label: label,
             title_show,
             main_win: window,
+            action_bar,
+            save_btn,
         }
     }
 
@@ -322,6 +333,12 @@ impl Widgets<Model, super::AppModel> for Editor {
         } else {
             self.layout.append(&self.title_show);
         }
+        if model.buffer.is_modified() {
+            self.save_btn.set_sensitive(true);
+        } else {
+            self.save_btn.set_sensitive(false);
+        }
+        self.layout.append(&self.action_bar);
         self.layout.append(&self.main_win);
         model.view.grab_focus();
         self.title_label.set_text(&model.title.text());
