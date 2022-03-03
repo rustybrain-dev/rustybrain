@@ -8,6 +8,7 @@ use gtk::prelude::*;
 use gtk::TextBuffer;
 use gtk::TextIter;
 use gtk::TextMark;
+use gtk::TextView;
 use rustybrain_core::md::Node;
 
 use anonymous::Anonymous;
@@ -50,7 +51,7 @@ pub trait Blocking {
     fn left(&self) -> &TextMark;
     fn right(&self) -> &TextMark;
 
-    fn apply_tag(&self, buffer: &TextBuffer);
+    fn mount(&self, view: &TextView, buffer: &TextBuffer);
 
     fn start(&self, buffer: &TextBuffer) -> TextIter {
         buffer.iter_at_mark(self.left())
@@ -60,20 +61,17 @@ pub trait Blocking {
         buffer.iter_at_mark(self.right())
     }
 
-    fn remove_tag(&self, buffer: &TextBuffer) {
+    fn umount(&self, _view: &TextView, buffer: &TextBuffer) {
         let start = self.start(buffer);
         let end = self.end(buffer);
         buffer.remove_all_tags(&start, &end);
-    }
-
-    fn umount(&self, buffer: &TextBuffer) {
         buffer.delete_mark(self.left());
         buffer.delete_mark(self.right());
     }
 
-    fn cursor_in(&self, _buffer: &TextBuffer) {}
+    fn cursor_in(&self, _view: &TextView, _buffer: &TextBuffer) {}
 
-    fn cursor_out(&self, _buffer: &TextBuffer) {}
+    fn cursor_out(&self, _view: &TextView, _buffer: &TextBuffer) {}
 
     fn hide_surround(&self, buffer: &gtk::TextBuffer) {
         let ((b_start, b_end), (e_start, e_end)) = self.surround(buffer, 1);
@@ -233,58 +231,47 @@ impl Blocking for Block {
         }
     }
 
-    fn apply_tag(&self, buffer: &TextBuffer) {
+    fn mount(&self, view: &TextView, buffer: &TextBuffer) {
         match self {
-            Block::Headline(h) => h.apply_tag(buffer),
-            Block::Anonymous(a) => a.apply_tag(buffer),
-            Block::Codeblock(b) => b.apply_tag(buffer),
-            Block::Link(l) => l.apply_tag(buffer),
-            Block::Emphasis(e) => e.apply_tag(buffer),
-            Block::StrongEmphasis(s) => s.apply_tag(buffer),
+            Block::Headline(h) => h.mount(view, buffer),
+            Block::Anonymous(a) => a.mount(view, buffer),
+            Block::Codeblock(b) => b.mount(view, buffer),
+            Block::Link(l) => l.mount(view, buffer),
+            Block::Emphasis(e) => e.mount(view, buffer),
+            Block::StrongEmphasis(s) => s.mount(view, buffer),
         }
     }
 
-    fn umount(&self, buffer: &TextBuffer) {
+    fn umount(&self, view: &TextView, buffer: &TextBuffer) {
         match self {
-            Block::Headline(h) => h.umount(buffer),
-            Block::Anonymous(a) => a.umount(buffer),
-            Block::Codeblock(b) => b.umount(buffer),
-            Block::Link(l) => l.umount(buffer),
-            Block::Emphasis(e) => e.umount(buffer),
-            Block::StrongEmphasis(s) => s.umount(buffer),
+            Block::Headline(h) => h.umount(view, buffer),
+            Block::Anonymous(a) => a.umount(view, buffer),
+            Block::Codeblock(b) => b.umount(view, buffer),
+            Block::Link(l) => l.umount(view, buffer),
+            Block::Emphasis(e) => e.umount(view, buffer),
+            Block::StrongEmphasis(s) => s.umount(view, buffer),
         }
     }
 
-    fn remove_tag(&self, buffer: &TextBuffer) {
+    fn cursor_in(&self, view: &TextView, buffer: &TextBuffer) {
         match self {
-            Block::Headline(h) => h.remove_tag(buffer),
-            Block::Anonymous(a) => a.remove_tag(buffer),
-            Block::Codeblock(b) => b.remove_tag(buffer),
-            Block::Link(l) => l.remove_tag(buffer),
-            Block::Emphasis(e) => e.remove_tag(buffer),
-            Block::StrongEmphasis(e) => e.remove_tag(buffer),
+            Block::Headline(h) => h.cursor_in(view, buffer),
+            Block::Codeblock(c) => c.cursor_in(view, buffer),
+            Block::Anonymous(a) => a.cursor_in(view, buffer),
+            Block::Link(l) => l.cursor_in(view, buffer),
+            Block::Emphasis(e) => e.cursor_in(view, buffer),
+            Block::StrongEmphasis(s) => s.cursor_in(view, buffer),
         }
     }
 
-    fn cursor_in(&self, buffer: &TextBuffer) {
+    fn cursor_out(&self, view: &TextView, buffer: &TextBuffer) {
         match self {
-            Block::Headline(h) => h.cursor_in(buffer),
-            Block::Codeblock(c) => c.cursor_in(buffer),
-            Block::Anonymous(a) => a.cursor_in(buffer),
-            Block::Link(l) => l.cursor_in(buffer),
-            Block::Emphasis(e) => e.cursor_in(buffer),
-            Block::StrongEmphasis(s) => s.cursor_in(buffer),
-        }
-    }
-
-    fn cursor_out(&self, buffer: &TextBuffer) {
-        match self {
-            Block::Headline(h) => h.cursor_out(buffer),
-            Block::Codeblock(h) => h.cursor_out(buffer),
-            Block::Anonymous(h) => h.cursor_out(buffer),
-            Block::Link(l) => l.cursor_out(buffer),
-            Block::Emphasis(e) => e.cursor_out(buffer),
-            Block::StrongEmphasis(s) => s.cursor_out(buffer),
+            Block::Headline(h) => h.cursor_out(view, buffer),
+            Block::Codeblock(h) => h.cursor_out(view, buffer),
+            Block::Anonymous(h) => h.cursor_out(view, buffer),
+            Block::Link(l) => l.cursor_out(view, buffer),
+            Block::Emphasis(e) => e.cursor_out(view, buffer),
+            Block::StrongEmphasis(s) => s.cursor_out(view, buffer),
         }
     }
 }

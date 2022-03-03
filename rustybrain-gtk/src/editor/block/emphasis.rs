@@ -24,7 +24,7 @@ impl Blocking for Emphasis {
         &self.right
     }
 
-    fn apply_tag(&self, buffer: &gtk::TextBuffer) {
+    fn mount(&self, _view: &gtk::TextView, buffer: &gtk::TextBuffer) {
         buffer.apply_tag_by_name(
             "italic",
             &self.start(buffer),
@@ -32,11 +32,11 @@ impl Blocking for Emphasis {
         );
     }
 
-    fn cursor_in(&self, buffer: &gtk::TextBuffer) {
+    fn cursor_in(&self, _view: &gtk::TextView, buffer: &gtk::TextBuffer) {
         self.show_endpoint(buffer);
     }
 
-    fn cursor_out(&self, buffer: &gtk::TextBuffer) {
+    fn cursor_out(&self, _view: &gtk::TextView, buffer: &gtk::TextBuffer) {
         self.hide_endpoint(buffer);
     }
 }
@@ -63,7 +63,7 @@ impl Blocking for StrongEmphasis {
         &self.right
     }
 
-    fn apply_tag(&self, buffer: &gtk::TextBuffer) {
+    fn mount(&self, _view: &gtk::TextView, buffer: &gtk::TextBuffer) {
         buffer.apply_tag_by_name(
             "bold",
             &self.start(buffer),
@@ -71,11 +71,11 @@ impl Blocking for StrongEmphasis {
         );
     }
 
-    fn cursor_in(&self, buffer: &gtk::TextBuffer) {
+    fn cursor_in(&self, _view: &gtk::TextView, buffer: &gtk::TextBuffer) {
         self.show_endpoint_n(buffer, 2);
     }
 
-    fn cursor_out(&self, buffer: &gtk::TextBuffer) {
+    fn cursor_out(&self, _view: &gtk::TextView, buffer: &gtk::TextBuffer) {
         self.hide_endpoint_n(buffer, 2);
     }
 }

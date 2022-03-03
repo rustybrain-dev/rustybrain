@@ -53,49 +53,40 @@ impl Blocking for Link {
         &self.right
     }
 
-    fn apply_tag(&self, buffer: &gtk::TextBuffer) {
+    fn mount(&self, view: &gtk::TextView, buffer: &gtk::TextBuffer) {
         if let Some(text) = &self.text {
-            text.apply_tag(buffer);
+            text.mount(view, buffer);
         }
 
         if let Some(dest) = &self.dest {
-            dest.apply_tag(buffer)
+            dest.mount(view, buffer)
         }
     }
 
-    fn remove_tag(&self, buffer: &gtk::TextBuffer) {
+    fn umount(&self, view: &gtk::TextView, buffer: &gtk::TextBuffer) {
         if let Some(text) = &self.text {
-            text.remove_tag(buffer);
+            text.umount(view, buffer);
         }
         if let Some(dest) = &self.dest {
-            dest.remove_tag(buffer);
+            dest.umount(view, buffer);
         }
     }
 
-    fn umount(&self, buffer: &gtk::TextBuffer) {
+    fn cursor_in(&self, view: &gtk::TextView, buffer: &gtk::TextBuffer) {
         if let Some(text) = &self.text {
-            text.umount(buffer);
+            text.cursor_in(view, buffer);
         }
         if let Some(dest) = &self.dest {
-            dest.umount(buffer);
+            dest.cursor_in(view, buffer);
         }
     }
 
-    fn cursor_in(&self, buffer: &gtk::TextBuffer) {
+    fn cursor_out(&self, view: &gtk::TextView, buffer: &gtk::TextBuffer) {
         if let Some(text) = &self.text {
-            text.cursor_in(buffer);
+            text.cursor_out(view, buffer);
         }
         if let Some(dest) = &self.dest {
-            dest.cursor_in(buffer);
-        }
-    }
-
-    fn cursor_out(&self, buffer: &gtk::TextBuffer) {
-        if let Some(text) = &self.text {
-            text.cursor_out(buffer);
-        }
-        if let Some(dest) = &self.dest {
-            dest.cursor_out(buffer);
+            dest.cursor_out(view, buffer);
         }
     }
 }
@@ -117,7 +108,7 @@ impl Blocking for LinkText {
         &self.right
     }
 
-    fn apply_tag(&self, buffer: &gtk::TextBuffer) {
+    fn mount(&self, _view: &gtk::TextView, buffer: &gtk::TextBuffer) {
         buffer.apply_tag_by_name(
             "link",
             &self.start(buffer),
@@ -125,11 +116,11 @@ impl Blocking for LinkText {
         );
     }
 
-    fn cursor_in(&self, buffer: &gtk::TextBuffer) {
+    fn cursor_in(&self, _view: &gtk::TextView, buffer: &gtk::TextBuffer) {
         self.show_surround(buffer);
     }
 
-    fn cursor_out(&self, buffer: &gtk::TextBuffer) {
+    fn cursor_out(&self, _view: &gtk::TextView, buffer: &gtk::TextBuffer) {
         self.hide_surround(buffer);
     }
 }
@@ -151,7 +142,7 @@ impl Blocking for LinkDest {
         &self.right
     }
 
-    fn cursor_out(&self, buffer: &gtk::TextBuffer) {
+    fn cursor_out(&self, _view: &gtk::TextView, buffer: &gtk::TextBuffer) {
         let mut start = self.start(buffer);
         start.backward_char();
 
@@ -161,7 +152,7 @@ impl Blocking for LinkDest {
         buffer.apply_tag_by_name("hidden", &start, &end);
     }
 
-    fn cursor_in(&self, buffer: &gtk::TextBuffer) {
+    fn cursor_in(&self, _view: &gtk::TextView, buffer: &gtk::TextBuffer) {
         let mut start = self.start(buffer);
         start.backward_char();
 
@@ -171,5 +162,5 @@ impl Blocking for LinkDest {
         buffer.remove_tag_by_name("hidden", &start, &end);
     }
 
-    fn apply_tag(&self, _buffer: &gtk::TextBuffer) {}
+    fn mount(&self, _view: &gtk::TextView, _buffer: &gtk::TextBuffer) {}
 }

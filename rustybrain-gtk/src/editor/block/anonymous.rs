@@ -2,6 +2,7 @@ use super::Blocking;
 use gtk::prelude::*;
 use gtk::TextBuffer;
 use gtk::TextMark;
+use gtk::TextView;
 use rustybrain_core::md::Node;
 
 pub struct Anonymous {
@@ -25,7 +26,7 @@ impl Blocking for Anonymous {
         &self.right
     }
 
-    fn apply_tag(&self, _: &TextBuffer) {}
+    fn mount(&self, _: &TextView, _: &TextBuffer) {}
 
     fn start(&self, buffer: &TextBuffer) -> gtk::TextIter {
         buffer.iter_at_mark(self.left())
@@ -35,7 +36,5 @@ impl Blocking for Anonymous {
         buffer.iter_at_mark(self.right())
     }
 
-    fn remove_tag(&self, _buffer: &TextBuffer) {}
-
-    fn umount(&self, _buffer: &TextBuffer) {}
+    fn umount(&self, _v: &TextView, _buffer: &TextBuffer) {}
 }

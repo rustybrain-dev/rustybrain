@@ -1,6 +1,7 @@
 use gtk::prelude::*;
 use gtk::TextIter;
 use gtk::TextMark;
+use gtk::TextView;
 
 use super::Blocking;
 
@@ -39,18 +40,18 @@ impl Blocking for Codeblock {
         &self.right
     }
 
-    fn apply_tag(&self, buffer: &gtk::TextBuffer) {
+    fn mount(&self, view: &TextView, buffer: &gtk::TextBuffer) {
         if let Some(content) = &self.content {
-            content.apply_tag(buffer);
+            content.mount(view, buffer);
             self.hide_begin_end_line(buffer);
         }
     }
 
-    fn cursor_in(&self, buffer: &gtk::TextBuffer) {
+    fn cursor_in(&self, _view: &TextView, buffer: &gtk::TextBuffer) {
         self.show_begin_end_line(buffer);
     }
 
-    fn cursor_out(&self, buffer: &gtk::TextBuffer) {
+    fn cursor_out(&self, _view: &TextView, buffer: &gtk::TextBuffer) {
         self.hide_begin_end_line(buffer);
     }
 
@@ -62,18 +63,11 @@ impl Blocking for Codeblock {
         buffer.iter_at_mark(self.right())
     }
 
-    fn remove_tag(&self, buffer: &gtk::TextBuffer) {
-        if let Some(content) = &self.content {
-            content.remove_tag(buffer);
-            self.show_begin_end_line(buffer)
-        }
-    }
-
-    fn umount(&self, buffer: &gtk::TextBuffer) {
+    fn umount(&self, view: &TextView, buffer: &gtk::TextBuffer) {
         buffer.delete_mark(self.left());
         buffer.delete_mark(self.right());
         if let Some(content) = self.content.as_ref() {
-            content.umount(buffer);
+            content.umount(view, buffer);
         }
     }
 }
@@ -142,7 +136,7 @@ impl Blocking for CodeblockContent {
         &self.right
     }
 
-    fn apply_tag(&self, buffer: &gtk::TextBuffer) {
+    fn mount(&self, _view: &gtk::TextView, buffer: &gtk::TextBuffer) {
         let start = self.start(buffer);
         let end = self.end(buffer);
         buffer.apply_tag_by_name("code-block", &start, &end);

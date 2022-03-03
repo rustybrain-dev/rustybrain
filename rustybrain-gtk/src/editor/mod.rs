@@ -83,8 +83,7 @@ impl Model {
 
     fn on_buffer_changed(&mut self) {
         while let Some(blk) = self.blocks.pop() {
-            blk.remove_tag(&self.buffer);
-            blk.umount(&self.buffer);
+            blk.umount(&self.view, &self.buffer);
         }
 
         let start = self.buffer.start_iter();
@@ -122,7 +121,7 @@ impl Model {
 
     fn on_node(&mut self, node: &Node) {
         let blk = block::Block::from_node(node, &mut self.buffer);
-        blk.apply_tag(&self.buffer);
+        blk.mount(&self.view, &self.buffer);
         self.blocks.push(blk);
     }
 
@@ -137,9 +136,9 @@ impl Model {
             if blk.start(&self.buffer).offset() <= offset
                 && blk.end(&self.buffer).offset() > offset
             {
-                blk.cursor_in(&self.buffer)
+                blk.cursor_in(&self.view, &self.buffer)
             } else {
-                blk.cursor_out(&self.buffer)
+                blk.cursor_out(&self.view, &self.buffer)
             }
         }
     }

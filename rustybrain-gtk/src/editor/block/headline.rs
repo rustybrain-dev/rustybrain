@@ -3,6 +3,7 @@ use gtk::prelude::*;
 use gtk::TextBuffer;
 use gtk::TextIter;
 use gtk::TextMark;
+use gtk::TextView;
 use rustybrain_core::md::Node;
 
 pub struct Headline {
@@ -36,56 +37,46 @@ impl Blocking for Headline {
         &self.right
     }
 
-    fn apply_tag(&self, buffer: &TextBuffer) {
+    fn mount(&self, view: &TextView, buffer: &TextBuffer) {
         if let Some(content) = self.content.as_ref() {
-            content.apply_tag(buffer);
+            content.mount(view, buffer);
         }
 
         if let Some(marker) = self.marker.as_ref() {
-            marker.apply_tag(buffer);
+            marker.mount(view, buffer);
         }
     }
 
-    fn remove_tag(&self, buffer: &TextBuffer) {
-        if let Some(content) = self.content.as_ref() {
-            content.remove_tag(buffer);
-        }
-
-        if let Some(marker) = self.marker.as_ref() {
-            marker.remove_tag(buffer);
-        }
-    }
-
-    fn umount(&self, buffer: &TextBuffer) {
+    fn umount(&self, view: &gtk::TextView, buffer: &TextBuffer) {
         buffer.delete_mark(self.left());
         buffer.delete_mark(self.right());
 
         if let Some(content) = self.content.as_ref() {
-            content.umount(buffer);
+            content.umount(view, buffer);
         }
 
         if let Some(marker) = self.marker.as_ref() {
-            marker.umount(buffer);
+            marker.umount(view, buffer);
         }
     }
 
-    fn cursor_in(&self, buffer: &TextBuffer) {
+    fn cursor_in(&self, view: &gtk::TextView, buffer: &TextBuffer) {
         if let Some(content) = self.content.as_ref() {
-            content.cursor_in(buffer);
+            content.cursor_in(view, buffer);
         }
 
         if let Some(marker) = self.marker.as_ref() {
-            marker.cursor_in(buffer);
+            marker.cursor_in(view, buffer);
         }
     }
 
-    fn cursor_out(&self, buffer: &TextBuffer) {
+    fn cursor_out(&self, view: &gtk::TextView, buffer: &TextBuffer) {
         if let Some(content) = self.content.as_ref() {
-            content.cursor_out(buffer);
+            content.cursor_out(view, buffer);
         }
 
         if let Some(marker) = self.marker.as_ref() {
-            marker.cursor_out(buffer);
+            marker.cursor_out(view, buffer);
         }
     }
 }
@@ -125,15 +116,15 @@ impl Blocking for Marker {
         iter
     }
 
-    fn apply_tag(&self, buffer: &TextBuffer) {
+    fn mount(&self, _view: &TextView, buffer: &TextBuffer) {
         self.hide(buffer);
     }
 
-    fn cursor_in(&self, buffer: &TextBuffer) {
+    fn cursor_in(&self, _view: &gtk::TextView, buffer: &TextBuffer) {
         self.show(buffer);
     }
 
-    fn cursor_out(&self, buffer: &TextBuffer) {
+    fn cursor_out(&self, _view: &gtk::TextView, buffer: &TextBuffer) {
         self.hide(buffer);
     }
 }
@@ -180,7 +171,7 @@ impl Blocking for Content {
         &self.right
     }
 
-    fn apply_tag(&self, buffer: &TextBuffer) {
+    fn mount(&self, _view: &gtk::TextView, buffer: &TextBuffer) {
         let start = self.start(buffer);
         let end = self.end(buffer);
         let tag = format!("h{}", self.number);
