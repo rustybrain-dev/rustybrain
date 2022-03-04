@@ -173,7 +173,7 @@ impl Zettel {
         dir.join(format!(".{}", f)).to_path_buf()
     }
 
-    pub fn id(&self) -> &str {
+    pub fn zid(&self) -> &str {
         &self.id
     }
 
