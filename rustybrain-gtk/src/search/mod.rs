@@ -31,7 +31,6 @@ pub enum Msg {
     Changed(String),
     Search(Rc<RefCell<Kasten>>, String),
     Activate(Option<Zettel>),
-    Insert(Option<Zettel>),
 }
 
 pub struct Search {
@@ -91,18 +90,19 @@ impl ComponentUpdate<AppModel> for Model {
             Msg::Activate(item) => {
                 send!(sender, Msg::Hide);
                 if let Some(z) = item {
-                    send!(parent_sender, super::Msg::ChangeZettel(z));
+                    if self.inserting {
+                        send!(parent_sender, super::Msg::InsertZettel(z));
+                    } else {
+                        send!(parent_sender, super::Msg::ChangeZettel(z));
+                    }
                 } else {
                     send!(
                         parent_sender,
-                        super::Msg::NewZettel(self.searching.to_string())
+                        super::Msg::NewZettel(
+                            self.searching.to_string(),
+                            self.inserting
+                        )
                     );
-                }
-            }
-            Msg::Insert(item) => {
-                send!(sender, Msg::Hide);
-                if let Some(z) = item {
-                    send!(parent_sender, super::Msg::InsertZettel(z));
                 }
             }
         }
@@ -292,11 +292,7 @@ impl Search {
 
         let btn = gtk::Button::builder().label(btn_label).build();
         btn.connect_clicked(move |_| {
-            if inserting {
-                send!(sender, Msg::Insert(zettel.clone()));
-            } else {
-                send!(sender, Msg::Activate(zettel.clone()));
-            }
+            send!(sender, Msg::Activate(zettel.clone()));
         });
         box_.append(&label);
         box_.append(&btn);

@@ -33,7 +33,9 @@ pub enum Msg {
     Init(ApplicationWindow),
     ChangeZettel(Zettel),
     InsertZettel(Zettel),
-    NewZettel(String),
+    /// Means insert current zettel to previous zettel after save.
+    OpenZettelOnStack(Zettel),
+    NewZettel(String, bool),
     ShowMsg(MessageType, String),
 }
 
@@ -102,6 +104,9 @@ impl AppUpdate for AppModel {
             Msg::InsertZettel(z) => {
                 send!(components.editor.sender(), editor::Msg::Insert(z))
             }
+            Msg::OpenZettelOnStack(z) => {
+                send!(components.editor.sender(), editor::Msg::OpenOnStack(z))
+            }
             Msg::Init(w) => {
                 send!(
                     components.search.sender(),
@@ -117,9 +122,15 @@ impl AppUpdate for AppModel {
             Msg::ShowMsg(t, s) => {
                 send!(components.msg.sender(), msg::Msg::Show(t, s))
             }
-            Msg::NewZettel(title) => {
+            Msg::NewZettel(title, inserting) => {
                 match self.kasten.borrow().create(&title) {
-                    Ok(z) => send!(sender, Msg::ChangeZettel(z)),
+                    Ok(z) => {
+                        if inserting {
+                            send!(sender, Msg::OpenZettelOnStack(z));
+                        } else {
+                            send!(sender, Msg::ChangeZettel(z));
+                        }
+                    }
                     Err(e) => send!(
                         sender,
                         Msg::ShowMsg(

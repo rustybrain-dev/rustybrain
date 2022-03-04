@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use gtk::{
     prelude::*, ActionBar, EventControllerFocus, MessageType, ScrolledWindow,
-    TextMark,
+    TextBuffer, TextMark,
 };
 use relm4::{send, ComponentUpdate, Components, Widgets};
 use rustybrain_core::kasten::Kasten;
@@ -19,6 +19,7 @@ use self::block::Blocking;
 pub enum Msg {
     Open(Zettel),
     Insert(Zettel),
+    OpenOnStack(Zettel),
     Changed,
     Save,
     Cursor,
@@ -27,10 +28,19 @@ pub enum Msg {
     InsertText(TextMark, String),
 }
 
+/// Zettel that be editing.
+pub struct EditingZettel {
+    title: gtk::EntryBuffer,
+    buffer: gtk::TextBuffer,
+    zettel: Zettel,
+}
+
 pub struct Model {
     tree: Option<Tree>,
     zettel: Option<Zettel>,
     kasten: Rc<RefCell<Kasten>>,
+
+    stack: Vec<EditingZettel>,
 
     buffer: gtk::TextBuffer,
     title: gtk::EntryBuffer,
@@ -38,8 +48,6 @@ pub struct Model {
 
     editing_title: bool,
 
-    #[allow(dead_code)]
-    table: gtk::TextTagTable,
     blocks: Vec<block::Block>,
 }
 
@@ -75,24 +83,106 @@ pub struct Editor {
 }
 
 impl Model {
+    fn buffer(&self) -> &TextBuffer {
+        // check if stack is empty
+        if let Some(b) = self.stack.last() {
+            &b.buffer
+        } else {
+            &self.buffer
+        }
+    }
+
+    fn zettel(&self) -> Option<Zettel> {
+        // check if stack is empty
+        if let Some(b) = self.stack.last() {
+            Some(b.zettel.clone())
+        } else {
+            self.zettel.clone()
+        }
+    }
+
+    fn title(&self) -> &gtk::EntryBuffer {
+        if let Some(b) = self.stack.last() {
+            &b.title
+        } else {
+            &self.title
+        }
+    }
+
     fn open_zettel(&mut self, z: Zettel) {
         self.buffer.set_text(z.content());
         self.title.set_text(z.title());
         self.zettel = Some(z);
     }
 
+    fn open_zettel_on_stack(
+        &mut self,
+        zettel: Zettel,
+        sender: relm4::Sender<Msg>,
+    ) {
+        let title = Self::create_title_buffer();
+        let buffer = Self::create_buffer();
+        buffer.set_text(zettel.content());
+        title.set_text(zettel.title());
+
+        let ez = EditingZettel {
+            title,
+            buffer,
+            zettel,
+        };
+        self.stack.push(ez);
+        self.listen_buffer_event(sender);
+    }
+
+    fn pop_stack_and_insert(&mut self, sender: relm4::Sender<Msg>) {
+        if let Some(z) = self.stack.pop() {
+            send!(sender, Msg::Insert(z.zettel));
+        }
+    }
+
+    fn listen_buffer_event(&self, sender: relm4::Sender<Msg>) {
+        let s = sender.clone();
+
+        self.buffer()
+            .connect_changed(move |_| send!(s, Msg::Changed));
+
+        let s = sender.clone();
+        self.buffer().connect_insert_text(move |b, i, t| {
+            send!(
+                s,
+                Msg::InsertText(b.create_mark(None, i, false), t.to_string())
+            )
+        });
+
+        let s = sender.clone();
+        self.buffer()
+            .connect_cursor_position_notify(move |_| send!(s, Msg::Cursor));
+    }
+
+    fn create_buffer() -> TextBuffer {
+        let table = style::Style::new().table();
+        gtk::TextBuffer::builder()
+            .enable_undo(true)
+            .tag_table(&table)
+            .build()
+    }
+
+    fn create_title_buffer() -> gtk::EntryBuffer {
+        gtk::EntryBuffer::builder().build()
+    }
+
     fn on_buffer_changed(&mut self) {
         while let Some(blk) = self.blocks.pop() {
-            blk.umount(&self.view, &self.buffer);
+            blk.umount(&self.view, self.buffer());
         }
 
-        let start = self.buffer.start_iter();
-        let end = self.buffer.end_iter();
+        let start = self.buffer().start_iter();
+        let end = self.buffer().end_iter();
 
-        self.buffer.remove_all_tags(&start, &end);
-        self.buffer.apply_tag_by_name("p", &start, &end);
+        self.buffer().remove_all_tags(&start, &end);
+        self.buffer().apply_tag_by_name("p", &start, &end);
 
-        let text = self.buffer.text(&start, &end, true);
+        let text = self.buffer().text(&start, &end, true);
 
         if let Ok(tree) = rustybrain_core::md::parse(text.as_str(), None) {
             self.tree = tree;
@@ -120,25 +210,25 @@ impl Model {
     }
 
     fn on_node(&mut self, node: &Node) {
-        let blk = block::Block::from_node(node, &mut self.buffer);
-        blk.mount(&self.view, &self.buffer);
+        let blk = block::Block::from_node(node, self.buffer());
+        blk.mount(&self.view, self.buffer());
         self.blocks.push(blk);
     }
 
     fn on_cursor_notify(&mut self) {
-        let offset = self.buffer.cursor_position();
+        let offset = self.buffer().cursor_position();
 
         for blk in &self.blocks {
             if blk.is_anonymous() {
                 continue;
             }
 
-            if blk.start(&self.buffer).offset() <= offset
-                && blk.end(&self.buffer).offset() > offset
+            if blk.start(self.buffer()).offset() <= offset
+                && blk.end(self.buffer()).offset() > offset
             {
-                blk.cursor_in(&self.view, &self.buffer)
+                blk.cursor_in(&self.view, self.buffer())
             } else {
-                blk.cursor_out(&self.view, &self.buffer)
+                blk.cursor_out(&self.view, self.buffer())
             }
         }
     }
@@ -146,12 +236,8 @@ impl Model {
 
 impl ComponentUpdate<super::AppModel> for Model {
     fn init_model(parent_model: &super::AppModel) -> Self {
-        let table = style::Style::new().table();
-        let buffer = gtk::TextBuffer::builder()
-            .enable_undo(true)
-            .tag_table(&table)
-            .build();
-        let title = gtk::EntryBuffer::builder().build();
+        let buffer = Self::create_buffer();
+        let title = Self::create_title_buffer();
 
         let view = gtk::TextView::builder()
             .buffer(&buffer)
@@ -164,12 +250,12 @@ impl ComponentUpdate<super::AppModel> for Model {
         let mut model = Model {
             tree: None,
             zettel: None,
+            stack: vec![],
             kasten: parent_model.kasten.clone(),
             blocks: vec![],
             editing_title: false,
             buffer,
             title,
-            table,
             view,
         };
         model.on_buffer_changed();
@@ -180,12 +266,12 @@ impl ComponentUpdate<super::AppModel> for Model {
         &mut self,
         msg: Self::Msg,
         _components: &Self::Components,
-        _sender: relm4::Sender<Self::Msg>,
+        sender: relm4::Sender<Self::Msg>,
         parent_sender: relm4::Sender<super::Msg>,
     ) {
         match msg {
             Msg::Changed => {
-                self.buffer.set_modified(true);
+                self.buffer().set_modified(true);
                 self.on_buffer_changed()
             }
             Msg::Cursor => self.on_cursor_notify(),
@@ -193,8 +279,13 @@ impl ComponentUpdate<super::AppModel> for Model {
                 self.editing_title = false;
                 self.open_zettel(z)
             }
+
+            Msg::OpenOnStack(z) => {
+                self.editing_title = false;
+                self.open_zettel_on_stack(z, sender);
+            }
             Msg::Insert(z) => {
-                self.buffer.insert_at_cursor(&format!(
+                self.buffer().insert_at_cursor(&format!(
                     "[{}]({})",
                     z.title(),
                     z.id(),
@@ -202,21 +293,22 @@ impl ComponentUpdate<super::AppModel> for Model {
             }
             Msg::InsertText(m, s) => {
                 if s == "@" {
-                    let mut iter = self.buffer.iter_at_mark(&m);
-                    let anchor = self.buffer.create_child_anchor(&mut iter);
+                    let mut iter = self.buffer().iter_at_mark(&m);
+                    let anchor = self.buffer().create_child_anchor(&mut iter);
                     let child =
                         gtk::Label::builder().label("You Complete Me").build();
                     self.view.add_child_at_anchor(&child, &anchor);
                 }
             }
             Msg::Save => {
-                if self.buffer.is_modified() {
-                    if let Some(zettel) = self.zettel.as_mut() {
-                        let start = self.buffer.start_iter();
-                        let end = self.buffer.end_iter();
-                        let text = self.buffer.text(&start, &end, true);
+                if self.buffer().is_modified() {
+                    let start = self.buffer().start_iter();
+                    let end = self.buffer().end_iter();
+                    let text = self.buffer().text(&start, &end, true);
+                    let title = self.title().text();
+                    if let Some(zettel) = self.zettel().as_mut() {
                         zettel.set_content(&text);
-                        zettel.set_title(&self.title.text());
+                        zettel.set_title(&title);
                         let mut kasten = self.kasten.borrow_mut();
                         if let Err(err) = kasten.save(zettel) {
                             send!(
@@ -228,7 +320,8 @@ impl ComponentUpdate<super::AppModel> for Model {
                             );
                         }
                     }
-                    self.buffer.set_modified(false);
+                    self.buffer().set_modified(false);
+                    self.pop_stack_and_insert(sender);
                 }
             }
             Msg::EditTitle => self.editing_title = true,
@@ -263,7 +356,7 @@ impl Widgets<Model, super::AppModel> for Editor {
             .hexpand(true)
             .vexpand(false)
             .placeholder_text("Title")
-            .buffer(&model.title)
+            .buffer(model.title())
             .build();
 
         let focus_ctrl = EventControllerFocus::builder().build();
@@ -280,25 +373,7 @@ impl Widgets<Model, super::AppModel> for Editor {
             .margin_bottom(10)
             .child(&model.view)
             .build();
-
-        let s = sender.clone();
-
-        model
-            .buffer
-            .connect_changed(move |_| send!(s, Msg::Changed));
-
-        let s = sender.clone();
-        model.buffer.connect_insert_text(move |b, i, t| {
-            send!(
-                s,
-                Msg::InsertText(b.create_mark(None, i, false), t.to_string())
-            )
-        });
-
-        let s = sender.clone();
-        model
-            .buffer
-            .connect_cursor_position_notify(move |_| send!(s, Msg::Cursor));
+        model.listen_buffer_event(sender.clone());
 
         let title_show = gtk::Box::builder()
             .orientation(gtk::Orientation::Horizontal)
@@ -335,6 +410,8 @@ impl Widgets<Model, super::AppModel> for Editor {
                 None => break,
             }
         }
+        model.view.set_buffer(Some(model.buffer()));
+        self.title_in.set_buffer(model.title());
         if model.editing_title {
             self.layout.append(&self.title_in);
         } else {
@@ -348,8 +425,8 @@ impl Widgets<Model, super::AppModel> for Editor {
         self.layout.append(&self.action_bar);
         self.layout.append(&self.main_win);
         model.view.grab_focus();
-        self.title_label.set_text(&model.title.text());
-        if model.title.text() == "" {
+        self.title_label.set_text(&model.title().text());
+        if model.title().text() == "" {
             self.title_in.set_placeholder_text(Some("Title"))
         } else {
             self.title_in.set_placeholder_text(None)
