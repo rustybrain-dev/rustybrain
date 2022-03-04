@@ -1,6 +1,6 @@
 use std::{
     cell::RefCell,
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     fs::{self, create_dir_all, DirEntry},
     path::{Path, PathBuf},
     rc::Rc,
@@ -64,6 +64,8 @@ pub struct Kasten {
     body: Field,
     path: Field,
     index: Index,
+
+    backlinks: HashMap<String, Vec<Zettel>>,
 }
 
 impl Kasten {
@@ -82,6 +84,8 @@ impl Kasten {
             title,
             body,
             path,
+
+            backlinks: HashMap::new(),
         };
         kasten.build_index()?;
         Ok(kasten)

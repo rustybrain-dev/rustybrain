@@ -10,7 +10,6 @@ use gtk::{
 };
 use relm4::{send, ComponentUpdate, Components, Widgets};
 use rustybrain_core::kasten::Kasten;
-use rustybrain_core::md::TreeCursor;
 use rustybrain_core::md::{Node, Tree};
 use rustybrain_core::zettel::Zettel;
 
@@ -32,7 +31,6 @@ pub struct EditingZettel {
     title: gtk::EntryBuffer,
     buffer: gtk::TextBuffer,
     zettel: Zettel,
-    tree: Option<Tree>,
 
     view: TextView,
     blocks: Vec<block::Block>,
@@ -61,7 +59,6 @@ impl EditingZettel {
             view,
 
             blocks: vec![],
-            tree: None,
         };
         r.on_buffer_changed();
         r
@@ -89,19 +86,20 @@ impl EditingZettel {
         self.buffer.apply_tag_by_name("p", &start, &end);
 
         let text = self.buffer.text(&start, &end, true);
+        if let Err(_) = self.zettel.set_content(text.as_str()) {
+            return;
+        };
 
-        if let Ok(tree) = rustybrain_core::md::parse(text.as_str(), None) {
-            self.tree = tree;
-        } else {
-            self.tree = None;
+        let tree = self.zettel.tree();
+        if self.zettel.tree().is_none() {
+            return;
         }
-
-        if let Some(tree) = self.tree.clone() {
-            self.walk(tree.walk());
-        }
+        let t = tree.unwrap().clone();
+        self.walk(&t);
     }
 
-    fn walk(&mut self, mut cursor: TreeCursor) {
+    fn walk(&mut self, tree: &Tree) {
+        let mut cursor = tree.walk();
         let mut nodes_to_deep = vec![cursor.node()];
         while let Some(node) = nodes_to_deep.pop() {
             self.on_node(&node);
@@ -152,12 +150,11 @@ impl EditingZettel {
         if !self.buffer.is_modified() {
             return false;
         }
-        let start = self.buffer.start_iter();
-        let end = self.buffer.end_iter();
-        let text = self.buffer.text(&start, &end, true);
+
+        // TODO set when title is changed
         let title = self.title.text();
-        self.zettel.set_content(&text);
         self.zettel.set_title(&title);
+
         if let Err(err) = kasten.save(&self.zettel) {
             send!(
                 parent_sender,

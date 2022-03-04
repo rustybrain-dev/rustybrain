@@ -11,6 +11,9 @@ use std::str::FromStr;
 use chrono::Local;
 use serde::{Deserialize, Serialize};
 use toml::value::Datetime;
+use tree_sitter::Tree;
+
+use crate::md::ParseError;
 
 #[derive(Debug)]
 pub enum ZettelError {
@@ -20,6 +23,7 @@ pub enum ZettelError {
     DumpHeaderError(toml::ser::Error),
     IdExtractError(StripPrefixError),
     IdEmptyError,
+    TreeParseError(ParseError),
 }
 
 impl From<StripPrefixError> for ZettelError {
@@ -37,6 +41,12 @@ impl From<io::Error> for ZettelError {
 impl From<toml::de::Error> for ZettelError {
     fn from(e: toml::de::Error) -> Self {
         Self::ParseHeaderError(e)
+    }
+}
+
+impl From<ParseError> for ZettelError {
+    fn from(e: ParseError) -> Self {
+        Self::TreeParseError(e)
     }
 }
 
@@ -58,6 +68,9 @@ pub struct Zettel {
     path: PathBuf,
     header: ZettelHeader,
     content: String,
+
+    tree: Option<Tree>,
+
     #[allow(dead_code)]
     link_to: Vec<String>,
 }
@@ -119,11 +132,13 @@ impl Zettel {
         let mut content: String = String::new();
         cursor.read_to_string(&mut content)?;
         let id = Self::in_repo_path(path, repo_path)?;
+        let tree = crate::md::parse(&content, None)?;
         Ok(Zettel {
             id,
             path: path.to_path_buf(),
             header,
             content,
+            tree,
             link_to: vec![],
         })
     }
@@ -177,6 +192,10 @@ impl Zettel {
         &self.id
     }
 
+    pub fn tree(&self) -> Option<&Tree> {
+        self.tree.as_ref()
+    }
+
     pub fn path(&self) -> &Path {
         self.path.as_path()
     }
@@ -204,7 +223,9 @@ impl Zettel {
         self.header.title = title.to_string();
     }
 
-    pub fn set_content(&mut self, content: &str) {
+    pub fn set_content(&mut self, content: &str) -> Result<(), ZettelError> {
+        self.tree = crate::md::parse(content, None)?;
         self.content = content.to_string();
+        Ok(())
     }
 }

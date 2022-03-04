@@ -4,6 +4,7 @@ pub use tree_sitter::Node;
 pub use tree_sitter::Tree;
 pub use tree_sitter::TreeCursor;
 
+#[derive(Debug)]
 pub enum ParseError {
     LanguageError(LanguageError),
 }
