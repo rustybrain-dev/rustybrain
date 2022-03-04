@@ -135,14 +135,16 @@ impl Zettel {
         cursor.read_to_string(&mut content)?;
         let id = Self::in_repo_path(path, repo_path)?;
         let tree = crate::md::parse(&content, None)?;
-        Ok(Zettel {
+        let mut z = Zettel {
             id,
             path: path.to_path_buf(),
             header,
             content,
             tree,
             link_to: vec![],
-        })
+        };
+        z.parse_links_to();
+        Ok(z)
     }
 
     pub fn create(
@@ -255,7 +257,26 @@ impl Zettel {
     pub fn set_content(&mut self, content: &str) -> Result<(), ZettelError> {
         self.tree = crate::md::parse(content, None)?;
         self.content = content.to_string();
+        self.parse_links_to();
         Ok(())
+    }
+
+    pub fn parse_links_to(&mut self) {
+        let mut link_to: Vec<String> = vec![];
+        for node in self.walk_iter() {
+            if node.kind() == "text" {
+                if let Some(n) = node.parent() {
+                    if n.kind() == "link_destination" {
+                        let range = node.byte_range();
+                        let link_text = &self.content.as_bytes()[range];
+                        link_to.push(
+                            String::from_utf8_lossy(link_text).to_string(),
+                        );
+                    }
+                }
+            }
+        }
+        self.link_to = link_to
     }
 }
 
