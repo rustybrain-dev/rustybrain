@@ -10,7 +10,6 @@ use gtk::{
 };
 use relm4::{send, ComponentUpdate, Components, Widgets};
 use rustybrain_core::kasten::Kasten;
-use rustybrain_core::md::{Node, Tree};
 use rustybrain_core::zettel::Zettel;
 
 use self::block::Blocking;
@@ -90,33 +89,12 @@ impl EditingZettel {
             return;
         };
 
-        let tree = self.zettel.tree();
-        if self.zettel.tree().is_none() {
-            return;
+        let iter = self.zettel.walk_iter();
+        for node in iter {
+            let blk = block::Block::from_node(&node, &self.buffer);
+            blk.mount(&self.view, &self.buffer);
+            self.blocks.push(blk);
         }
-        let t = tree.unwrap().clone();
-        self.walk(&t);
-    }
-
-    fn walk(&mut self, tree: &Tree) {
-        let mut cursor = tree.walk();
-        let mut nodes_to_deep = vec![cursor.node()];
-        while let Some(node) = nodes_to_deep.pop() {
-            self.on_node(&node);
-            cursor.reset(node);
-            if cursor.goto_first_child() {
-                nodes_to_deep.push(cursor.node());
-                while cursor.goto_next_sibling() {
-                    nodes_to_deep.push(cursor.node());
-                }
-            }
-        }
-    }
-
-    fn on_node(&mut self, node: &Node) {
-        let blk = block::Block::from_node(node, &self.buffer);
-        blk.mount(&self.view, &self.buffer);
-        self.blocks.push(blk);
     }
 
     fn on_cursor_notify(&mut self) {

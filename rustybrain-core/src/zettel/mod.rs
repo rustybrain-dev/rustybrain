@@ -11,7 +11,9 @@ use std::str::FromStr;
 use chrono::Local;
 use serde::{Deserialize, Serialize};
 use toml::value::Datetime;
+use tree_sitter::Node;
 use tree_sitter::Tree;
+use tree_sitter::TreeCursor;
 
 use crate::md::ParseError;
 
@@ -196,6 +198,33 @@ impl Zettel {
         self.tree.as_ref()
     }
 
+    pub fn walk_iter(&self) -> WalkIter {
+        if let Some(tree) = self.tree.as_ref() {
+            return WalkIter::new(tree);
+        }
+        WalkIter::empty()
+    }
+
+    pub fn walk<F>(&self, on_node: F)
+    where
+        F: Fn(&Node) -> (),
+    {
+        if let Some(tree) = self.tree.as_ref() {
+            let mut cursor = tree.walk();
+            let mut nodes_to_deep = vec![cursor.node()];
+            while let Some(node) = nodes_to_deep.pop() {
+                on_node(&node);
+                cursor.reset(node);
+                if cursor.goto_first_child() {
+                    nodes_to_deep.push(cursor.node());
+                    while cursor.goto_next_sibling() {
+                        nodes_to_deep.push(cursor.node());
+                    }
+                }
+            }
+        }
+    }
+
     pub fn path(&self) -> &Path {
         self.path.as_path()
     }
@@ -227,5 +256,50 @@ impl Zettel {
         self.tree = crate::md::parse(content, None)?;
         self.content = content.to_string();
         Ok(())
+    }
+}
+
+pub struct WalkIter<'a> {
+    cursor: Option<TreeCursor<'a>>,
+    nodes_to_deep: Vec<Node<'a>>,
+}
+
+impl<'a> WalkIter<'a> {
+    pub fn new(tree: &'a Tree) -> Self {
+        let cursor = tree.walk();
+        let nodes_to_deep = vec![cursor.node()];
+        Self {
+            cursor: Some(cursor),
+            nodes_to_deep,
+        }
+    }
+
+    pub fn empty() -> Self {
+        Self {
+            cursor: None,
+            nodes_to_deep: vec![],
+        }
+    }
+}
+
+impl<'a> Iterator for WalkIter<'a> {
+    type Item = Node<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.cursor.is_none() {
+            return None;
+        }
+        let cursor = self.cursor.as_mut().unwrap();
+        if let Some(node) = self.nodes_to_deep.pop() {
+            cursor.reset(node);
+            if cursor.goto_first_child() {
+                self.nodes_to_deep.push(cursor.node());
+                while cursor.goto_next_sibling() {
+                    self.nodes_to_deep.push(cursor.node());
+                }
+            }
+            return Some(node);
+        }
+        None
     }
 }
