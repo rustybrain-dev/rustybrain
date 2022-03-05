@@ -99,7 +99,11 @@ impl AppUpdate for AppModel {
         match msg {
             Msg::Quit => relm4::gtk_application().quit(),
             Msg::ChangeZettel(z) => {
-                send!(components.editor.sender(), editor::Msg::Open(z))
+                send!(components.editor.sender(), editor::Msg::Open(z.clone()));
+                send!(
+                    components.backlinks.sender(),
+                    backlinks::Msg::ChangeZettel(z)
+                );
             }
             Msg::InsertZettel(z) => {
                 send!(components.editor.sender(), editor::Msg::Insert(z))
@@ -258,7 +262,7 @@ body {
 pub fn run(config: Rc<RefCell<Config>>) {
     let model = AppModel {
         show_list: false,
-        show_back: false,
+        show_back: true,
         config: config.clone(),
         kasten: Rc::new(RefCell::new(Kasten::new(config.clone()).unwrap())),
     };

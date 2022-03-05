@@ -94,6 +94,7 @@ impl Kasten {
         kasten.build()?;
         Ok(kasten)
     }
+
     fn build(&mut self) -> Result<(), KastenError> {
         self.build_index()?;
         let mut zettels = vec![];
@@ -213,6 +214,18 @@ impl Kasten {
 
     pub fn repo_path(&self) -> String {
         self.config.borrow().repo_path().to_string()
+    }
+
+    pub fn iter_backlinks(&self, z: &Zettel) -> Vec<Rc<RefCell<Zettel>>> {
+        let mut r = vec![];
+        if let Some(v) = self.backlinks.get(z.zid()) {
+            for idx in v.iter() {
+                if let Some(z) = self.zettels.get(idx.clone()) {
+                    r.push(z.clone());
+                }
+            }
+        }
+        r
     }
 }
 

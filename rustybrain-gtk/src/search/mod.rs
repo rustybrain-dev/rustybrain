@@ -122,7 +122,7 @@ impl Model {
         match kasten.search_title(&s) {
             Ok(set) => {
                 if set.is_empty() {
-                    self.handle_init(kasten, parent_sender);
+                    self.handle_init(kasten);
                     return;
                 }
                 for entry in kasten.iter() {
