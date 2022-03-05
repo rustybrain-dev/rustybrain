@@ -15,9 +15,9 @@ use rustybrain_core::zettel::Zettel;
 use self::block::Blocking;
 
 pub enum Msg {
-    Open(Zettel),
-    Insert(Zettel),
-    OpenOnStack(Zettel),
+    Open(Rc<RefCell<Zettel>>),
+    Insert(Rc<RefCell<Zettel>>),
+    OpenOnStack(Rc<RefCell<Zettel>>),
     Changed,
     Save,
     Cursor,
@@ -29,7 +29,7 @@ pub enum Msg {
 pub struct EditingZettel {
     title: gtk::EntryBuffer,
     buffer: gtk::TextBuffer,
-    zettel: Zettel,
+    zettel: Rc<RefCell<Zettel>>,
 
     view: TextView,
     blocks: Vec<block::Block>,
@@ -39,7 +39,7 @@ pub struct EditingZettel {
 }
 
 impl EditingZettel {
-    fn new(zettel: Zettel, view: TextView) -> Self {
+    fn new(zettel: Rc<RefCell<Zettel>>, view: TextView) -> Self {
         let table = style::Style::new().table();
         let buffer = gtk::TextBuffer::builder()
             .enable_undo(true)
@@ -47,8 +47,8 @@ impl EditingZettel {
             .build();
         let title = gtk::EntryBuffer::builder().build();
 
-        buffer.set_text(zettel.content());
-        title.set_text(zettel.title());
+        buffer.set_text(zettel.borrow().content());
+        title.set_text(zettel.borrow().title());
 
         let mut r = Self {
             buffer,
@@ -85,11 +85,12 @@ impl EditingZettel {
         self.buffer.apply_tag_by_name("p", &start, &end);
 
         let text = self.buffer.text(&start, &end, true);
-        if let Err(_) = self.zettel.set_content(text.as_str()) {
+        if let Err(_) = self.zettel.borrow_mut().set_content(text.as_str()) {
             return;
         };
 
-        let iter = self.zettel.walk_iter();
+        let zettel = &self.zettel.borrow();
+        let iter = zettel.walk_iter();
         for node in iter {
             let blk = block::Block::from_node(&node, &self.buffer);
             blk.mount(&self.view, &self.buffer);
@@ -131,9 +132,9 @@ impl EditingZettel {
 
         // TODO set when title is changed
         let title = self.title.text();
-        self.zettel.set_title(&title);
+        self.zettel.borrow_mut().set_title(&title);
 
-        if let Err(err) = kasten.save(&self.zettel) {
+        if let Err(err) = kasten.save(&self.zettel.borrow()) {
             send!(
                 parent_sender,
                 super::Msg::ShowMsg(
@@ -187,7 +188,11 @@ pub struct Editor {
 }
 
 impl Model {
-    fn open_zettel(&mut self, zettel: Zettel, sender: relm4::Sender<Msg>) {
+    fn open_zettel(
+        &mut self,
+        zettel: Rc<RefCell<Zettel>>,
+        sender: relm4::Sender<Msg>,
+    ) {
         loop {
             if self.stack.pop().is_none() {
                 break;
@@ -199,7 +204,7 @@ impl Model {
 
     fn open_zettel_on_stack(
         &mut self,
-        zettel: Zettel,
+        zettel: Rc<RefCell<Zettel>>,
         sender: relm4::Sender<Msg>,
     ) {
         let ez = EditingZettel::new(zettel, self.view.clone());
@@ -277,7 +282,7 @@ impl ComponentUpdate<super::AppModel> for Model {
                 self.open_zettel_on_stack(z, sender);
             }
             Msg::Insert(z) => {
-                self.insert_zettel_at_cursor(&z);
+                self.insert_zettel_at_cursor(&z.borrow());
             }
             Msg::Save => {
                 if self.save(parent_sender) || self.stack.len() > 1 {

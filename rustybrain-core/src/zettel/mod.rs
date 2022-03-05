@@ -6,6 +6,7 @@ use std::io::prelude::*;
 use std::io::Cursor;
 use std::path::StripPrefixError;
 use std::path::{Path, PathBuf};
+use std::slice::Iter;
 use std::str::FromStr;
 
 use chrono::Local;
@@ -261,7 +262,7 @@ impl Zettel {
         Ok(())
     }
 
-    pub fn parse_links_to(&mut self) {
+    fn parse_links_to(&mut self) {
         let mut link_to: Vec<String> = vec![];
         for node in self.walk_iter() {
             if node.kind() == "text" {
@@ -277,6 +278,10 @@ impl Zettel {
             }
         }
         self.link_to = link_to
+    }
+
+    pub fn link_to_iter(&self) -> Iter<'_, String> {
+        self.link_to.iter()
     }
 }
 

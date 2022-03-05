@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use gtk::{prelude::*, Label, ListBoxRow};
 use relm4::{send, ComponentUpdate};
 use rustybrain_core::zettel::Zettel;
@@ -7,7 +9,7 @@ pub enum Msg {
 }
 
 pub struct Model {
-    zettel: Zettel,
+    zettel: Rc<RefCell<Zettel>>,
 }
 
 pub struct Item {
@@ -57,7 +59,7 @@ impl relm4::Widgets<Model, super::RowModel> for Item {
         _sender: relm4::Sender<Msg>,
     ) -> Self {
         let row = ListBoxRow::new();
-        let label = Label::new(Some(model.zettel.title()));
+        let label = Label::new(Some(model.zettel.borrow().title()));
         row.set_child(Some(&label));
         Item { row, label }
     }

@@ -21,7 +21,7 @@ pub struct Model {
 
 pub enum Msg {
     RowSelected(ListBoxRow),
-    ZettelSelected(Zettel),
+    ZettelSelected(Rc<RefCell<Zettel>>),
 }
 
 pub struct ListView {
@@ -32,7 +32,7 @@ pub struct ListView {
 }
 
 pub struct RowModel {
-    zettel: Zettel,
+    zettel: Rc<RefCell<Zettel>>,
 }
 
 impl relm4::Model for RowModel {
@@ -55,15 +55,11 @@ impl Components<Model> for ListViewComponents {
         let mut items = vec![];
         let kasten = parent_model.kasten.borrow();
         for zettel in kasten.iter() {
-            match zettel {
-                Ok(z) => {
-                    let model = RowModel { zettel: z };
-                    let item =
-                        RelmComponent::new(&model, parent_sender.clone());
-                    items.push(item);
-                }
-                Err(e) => println!("error {:?}", e),
-            }
+            let model = RowModel {
+                zettel: zettel.clone(),
+            };
+            let item = RelmComponent::new(&model, parent_sender.clone());
+            items.push(item);
         }
         ListViewComponents { rows: items }
     }

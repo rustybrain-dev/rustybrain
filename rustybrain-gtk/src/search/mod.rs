@@ -6,17 +6,13 @@ use gtk::{
     ScrolledWindow,
 };
 use relm4::{send, ComponentUpdate, Widgets};
-use rustybrain_core::{
-    config::Config,
-    kasten::{Kasten, KastenError},
-    zettel::Zettel,
-};
+use rustybrain_core::{config::Config, kasten::Kasten, zettel::Zettel};
 
 use crate::AppModel;
 
 pub struct Model {
     app_win: Option<ApplicationWindow>,
-    zettels: Vec<Zettel>,
+    zettels: Vec<Rc<RefCell<Zettel>>>,
     searching: String,
     inserting: bool,
     show: bool,
@@ -30,7 +26,7 @@ pub enum Msg {
     Hide,
     Changed(String),
     Search(Rc<RefCell<Kasten>>, String),
-    Activate(Option<Zettel>),
+    Activate(Option<Rc<RefCell<Zettel>>>),
 }
 
 pub struct Search {
@@ -75,7 +71,7 @@ impl ComponentUpdate<AppModel> for Model {
             Msg::Hide => self.show = false,
             Msg::Init(w, k) => {
                 self.app_win = Some(w);
-                self.handle_init(&k.borrow(), parent_sender);
+                self.handle_init(&k.borrow());
                 self.kasten = Some(k);
             }
             Msg::Changed(s) => {
@@ -110,13 +106,9 @@ impl ComponentUpdate<AppModel> for Model {
 }
 
 impl Model {
-    fn handle_init(
-        &mut self,
-        kasten: &Kasten,
-        parent_sender: relm4::Sender<super::Msg>,
-    ) {
+    fn handle_init(&mut self, kasten: &Kasten) {
         for item in kasten.iter() {
-            self.push_zettel(item, parent_sender.clone());
+            self.zettels.push(item.clone());
         }
     }
 
@@ -133,21 +125,11 @@ impl Model {
                     self.handle_init(kasten, parent_sender);
                     return;
                 }
-                for item in kasten.iter() {
-                    match item {
-                        Ok(z) => {
-                            let p = z.path().to_str().unwrap();
-                            if set.contains::<String>(&p.to_string()) {
-                                self.zettels.push(z);
-                            }
-                        }
-                        Err(_) => send!(
-                            parent_sender,
-                            super::Msg::ShowMsg(
-                                MessageType::Error,
-                                "Load notes from slip-box failed!".to_string()
-                            )
-                        ),
+                for entry in kasten.iter() {
+                    let z = &entry.borrow();
+                    let p = z.path().to_str().unwrap();
+                    if set.contains::<String>(&p.to_string()) {
+                        self.zettels.push(entry.clone());
                     }
                 }
             }
@@ -159,23 +141,6 @@ impl Model {
                 )
             ),
         };
-    }
-
-    fn push_zettel(
-        &mut self,
-        item: Result<Zettel, KastenError>,
-        parent_sender: relm4::Sender<super::Msg>,
-    ) {
-        match item {
-            Ok(z) => self.zettels.push(z),
-            Err(_) => send!(
-                parent_sender,
-                super::Msg::ShowMsg(
-                    MessageType::Error,
-                    "Load notes from slip-box failed!".to_string()
-                )
-            ),
-        }
     }
 }
 
@@ -254,14 +219,14 @@ impl Widgets<Model, AppModel> for Search {
         for item in model.zettels.iter() {
             if model.inserting {
                 self.list_box.append(&self.row(
-                    item.title(),
+                    item.borrow().title(),
                     true,
                     Some(item.clone()),
                     sender.clone(),
                 ));
             } else {
                 self.list_box.append(&self.row(
-                    item.title(),
+                    item.borrow().title(),
                     false,
                     Some(item.clone()),
                     sender.clone(),
@@ -276,7 +241,7 @@ impl Search {
         &self,
         item: &str,
         inserting: bool,
-        zettel: Option<Zettel>,
+        zettel: Option<Rc<RefCell<Zettel>>>,
         sender: relm4::Sender<Msg>,
     ) -> gtk::ListBoxRow {
         let btn_label = if inserting { "Insert" } else { "Go" };

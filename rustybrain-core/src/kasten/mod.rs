@@ -4,7 +4,9 @@ use std::{
     fs::{self, create_dir_all, DirEntry},
     path::{Path, PathBuf},
     rc::Rc,
+    slice::Iter,
     time::SystemTime,
+    usize,
 };
 
 use chrono::Local;
@@ -65,7 +67,8 @@ pub struct Kasten {
     path: Field,
     index: Index,
 
-    backlinks: HashMap<String, Vec<Zettel>>,
+    zettels: Vec<Rc<RefCell<Zettel>>>,
+    backlinks: HashMap<String, Vec<usize>>,
 }
 
 impl Kasten {
@@ -77,7 +80,7 @@ impl Kasten {
         let schema = schema_builder.build();
         let index = Index::create_in_ram(schema.clone());
 
-        let kasten = Kasten {
+        let mut kasten = Kasten {
             config,
             schema,
             index,
@@ -85,10 +88,30 @@ impl Kasten {
             body,
             path,
 
+            zettels: vec![],
             backlinks: HashMap::new(),
         };
-        kasten.build_index()?;
+        kasten.build()?;
         Ok(kasten)
+    }
+    fn build(&mut self) -> Result<(), KastenError> {
+        self.build_index()?;
+        let mut zettels = vec![];
+        let mut backlinks: HashMap<String, Vec<usize>> = HashMap::new();
+        for entry in self.iter_from_disk() {
+            let z = entry?;
+            for link_to in z.link_to_iter() {
+                if let Some(v) = backlinks.get_mut(link_to) {
+                    v.push(zettels.len());
+                } else {
+                    backlinks.insert(link_to.to_string(), vec![zettels.len()]);
+                }
+            }
+            zettels.push(Rc::new(RefCell::new(z)));
+        }
+        self.zettels = zettels;
+        self.backlinks = backlinks;
+        Ok(())
     }
 
     fn build_index(&self) -> Result<(), KastenError> {
@@ -98,14 +121,14 @@ impl Kasten {
             index_writer.commit()?;
         }
 
-        for entry in self.iter() {
-            let z = entry?;
-            self.add_doc(z)?;
+        for entry in self.zettels.iter() {
+            let z = entry.borrow();
+            self.add_doc(&z)?;
         }
         Ok(())
     }
 
-    fn add_doc(&self, z: Zettel) -> Result<(), KastenError> {
+    fn add_doc(&self, z: &Zettel) -> Result<(), KastenError> {
         let mut index_writer = self.index.writer(50_000_000)?;
         let title = self.title;
         let body = self.body;
@@ -146,27 +169,36 @@ impl Kasten {
         Ok(set)
     }
 
-    pub fn iter(&self) -> IntoIter {
+    pub fn iter(&self) -> Iter<'_, Rc<RefCell<Zettel>>> {
+        self.zettels.iter()
+    }
+
+    fn iter_from_disk(&self) -> SyncDiskIter {
         let c = (*self.config).borrow();
-        IntoIter {
+        SyncDiskIter {
             inner: None,
             repo_path: c.repo_path().to_string(),
         }
     }
 
-    pub fn create(&self, title: &str) -> Result<Zettel, KastenError> {
+    pub fn create(
+        &mut self,
+        title: &str,
+    ) -> Result<Rc<RefCell<Zettel>>, KastenError> {
         let path = self.new_path();
         if let Some(dir) = path.as_path().parent() {
             create_dir_all(dir)?;
         }
         let z = Zettel::create(&self.repo_path(), &path, title)?;
-        self.add_doc(z.clone())?;
+        self.add_doc(&z)?;
+        let z = Rc::new(RefCell::new(z));
+        self.zettels.push(z.clone());
         Ok(z)
     }
 
     pub fn save(&mut self, zettel: &Zettel) -> Result<(), KastenError> {
         zettel.save()?;
-        self.build_index()?;
+        self.build()?;
         Ok(())
     }
 
@@ -186,23 +218,23 @@ impl Kasten {
 
 impl IntoIterator for Kasten {
     type Item = Result<Zettel, KastenError>;
-    type IntoIter = IntoIter;
+    type IntoIter = SyncDiskIter;
 
     fn into_iter(self) -> Self::IntoIter {
         let c = (*self.config).borrow();
-        IntoIter {
+        SyncDiskIter {
             inner: None,
             repo_path: c.repo_path().to_string(),
         }
     }
 }
 
-pub struct IntoIter {
+pub struct SyncDiskIter {
     inner: Option<std::vec::IntoIter<DirEntry>>,
     repo_path: String,
 }
 
-impl Iterator for IntoIter {
+impl Iterator for SyncDiskIter {
     type Item = Result<Zettel, KastenError>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -224,7 +256,7 @@ impl Iterator for IntoIter {
     }
 }
 
-impl IntoIter {
+impl SyncDiskIter {
     fn scan_markdowns(&self) -> Result<Vec<DirEntry>, KastenError> {
         let buf = Path::new(&self.repo_path);
         let mut dirs = vec![buf.to_path_buf()];

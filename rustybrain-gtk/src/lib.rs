@@ -31,10 +31,10 @@ pub enum Msg {
     StartSearch,
     StartInsert,
     Init(ApplicationWindow),
-    ChangeZettel(Zettel),
-    InsertZettel(Zettel),
+    ChangeZettel(Rc<RefCell<Zettel>>),
+    InsertZettel(Rc<RefCell<Zettel>>),
     /// Means insert current zettel to previous zettel after save.
-    OpenZettelOnStack(Zettel),
+    OpenZettelOnStack(Rc<RefCell<Zettel>>),
     NewZettel(String, bool),
     ShowMsg(MessageType, String),
 }
@@ -123,7 +123,7 @@ impl AppUpdate for AppModel {
                 send!(components.msg.sender(), msg::Msg::Show(t, s))
             }
             Msg::NewZettel(title, inserting) => {
-                match self.kasten.borrow().create(&title) {
+                match self.kasten.borrow_mut().create(&title) {
                     Ok(z) => {
                         if inserting {
                             send!(sender, Msg::OpenZettelOnStack(z));
