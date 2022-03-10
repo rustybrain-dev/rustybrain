@@ -2,5 +2,6 @@
 <gresources>
   <gresource prefix="/dev/rustybrain/app">
     <file compressed="true">assets/ui/guide.ui</file>
+    <file compressed="true">assets/css/main.css</file>
   </gresource>
 </gresources>
