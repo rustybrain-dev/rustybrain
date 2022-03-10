@@ -230,7 +230,7 @@ impl Widgets<AppModel, ()> for AppWidgets {
         }
 
         let provider = CssProvider::new();
-        provider.load_from_data(CSS.as_bytes());
+        provider.load_from_resource("/dev/rustybrain/app/assets/css/main.css");
         StyleContext::add_provider_for_display(
             &self.root_widget().display(),
             &provider,
@@ -253,13 +253,9 @@ impl AppWidgets {
     }
 }
 
-const CSS: &'static str = r#"
-body {
-      background-color: #fefefe;
-    }
-"#;
-
 pub fn run(config: Rc<RefCell<Config>>) {
+    gio::resources_register_include!("app.gresource").unwrap();
+
     let model = AppModel {
         show_list: false,
         show_back: true,
