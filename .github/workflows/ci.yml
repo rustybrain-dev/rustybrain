@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install GTK4
-        run: apt-get install -y libgtk-4-bin libgtk-4-common libgtk-4-dev libgtk-4-doc
+        run: sudo apt-get install -y libgtk-4-bin libgtk-4-common libgtk-4-dev libgtk-4-doc
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install GTK4
-        run: apt-get install -y libgtk-4-bin libgtk-4-common libgtk-4-dev libgtk-4-doc
+        run: sudo apt-get install -y libgtk-4-bin libgtk-4-common libgtk-4-dev libgtk-4-doc
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -40,8 +40,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Install GTK4
-        run: apt-get install -y libgtk-4-bin libgtk-4-common libgtk-4-dev libgtk-4-doc
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -59,7 +57,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install GTK4
-        run: apt-get install -y libgtk-4-bin libgtk-4-common libgtk-4-dev libgtk-4-doc
+        run: sudo apt-get install -y libgtk-4-bin libgtk-4-common libgtk-4-dev libgtk-4-doc
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
