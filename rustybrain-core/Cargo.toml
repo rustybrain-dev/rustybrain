@@ -7,5 +7,5 @@ chrono = "0.4.19"
 serde = { version = "1.0", features = ["derive"] }
 tantivy = "0.16.1"
 toml = "0.5"
-tree-sitter = "0.19.5"
+tree-sitter = "0.20.8"
 tree-sitter-markdown = "0.7.1"
