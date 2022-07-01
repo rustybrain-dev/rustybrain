@@ -126,7 +126,7 @@ impl Zettel {
         }
         let mut tmp = File::create(&tp)?;
         Self::write_header(&mut tmp, &self.header)?;
-        tmp.write(self.content.as_bytes())?;
+        tmp.write_all(self.content.as_bytes())?;
         rename(&tp, self.path())?;
         Ok(())
     }
@@ -136,9 +136,9 @@ impl Zettel {
         header: &ZettelHeader,
     ) -> Result<(), anyhow::Error> {
         let hs = toml::to_string(&header)?;
-        file.write(b"+++\n")?;
-        file.write(hs.as_bytes())?;
-        file.write(b"+++\n")?;
+        file.write_all(b"+++\n")?;
+        file.write_all(hs.as_bytes())?;
+        file.write_all(b"+++\n")?;
         Ok(())
     }
 

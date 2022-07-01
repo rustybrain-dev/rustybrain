@@ -125,10 +125,8 @@ impl Kasten {
         let mut set = HashSet::new();
         for (_score, doc_address) in top_docs {
             let retrieved_doc: Document = searcher.doc(doc_address)?;
-            if let Some(path) = retrieved_doc.get_first(self.path) {
-                if let Value::Str(s) = path {
-                    set.insert(s.to_string());
-                }
+            if let Some(Value::Str(s)) = retrieved_doc.get_first(self.path) {
+                set.insert(s.to_string());
             }
         }
         Ok(set)
@@ -171,9 +169,7 @@ impl Kasten {
         let c = (*self.config).borrow();
         let path = c.repo_path();
         let gen = Local::now().format("%Y%m%d%H%M%S").to_string();
-        Path::new(path)
-            .join(format!("notes/{}.md", gen))
-            
+        Path::new(path).join(format!("notes/{}.md", gen))
     }
 
     pub fn repo_path(&self) -> String {
@@ -238,19 +234,15 @@ impl SyncDiskIter {
         let buf = Path::new(&self.repo_path);
         let mut dirs = vec![buf.to_path_buf()];
         let mut result = vec![];
-        loop {
-            if let Some(cur) = dirs.pop() {
-                let rd = fs::read_dir(cur)?;
-                for entry in rd {
-                    let item = entry?;
-                    if item.path().is_dir() {
-                        dirs.push(item.path().to_path_buf());
-                    } else {
-                        result.push(item);
-                    }
+        while let Some(cur) = dirs.pop() {
+            let rd = fs::read_dir(cur)?;
+            for entry in rd {
+                let item = entry?;
+                if item.path().is_dir() {
+                    dirs.push(item.path().to_path_buf());
+                } else {
+                    result.push(item);
                 }
-            } else {
-                break;
             }
         }
         result.sort_by(|a, b| {
