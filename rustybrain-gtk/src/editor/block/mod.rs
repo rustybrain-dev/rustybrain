@@ -34,7 +34,7 @@ pub trait Blocking {
         node: &'a Node,
         name: &'a str,
     ) -> Option<Node<'a>> {
-        (0 as usize..node.child_count())
+        (0_usize..node.child_count())
             .filter_map(|i| {
                 if let Some(n) = node.child(i) {
                     if n.kind() == name {
@@ -91,13 +91,13 @@ pub trait Blocking {
         n: i32,
     ) -> ((TextIter, TextIter), (TextIter, TextIter)) {
         let b_end = self.start(buffer);
-        let mut b_start = b_end.clone();
+        let mut b_start = b_end;
         (0..n).for_each(|_| {
             b_start.backward_char();
         });
 
         let e_start = self.end(buffer);
-        let mut e_end = e_start.clone();
+        let mut e_end = e_start;
         (0..n).for_each(|_| {
             e_end.forward_char();
         });
@@ -134,17 +134,17 @@ pub trait Blocking {
         n: i32,
     ) -> ((TextIter, TextIter), (TextIter, TextIter)) {
         let b_start = self.start(buffer);
-        let mut b_end = b_start.clone();
+        let mut b_end = b_start;
 
         (0..n).for_each(|_| {
             b_end.forward_char();
         });
 
         let e_end = self.end(buffer);
-        let mut e_start = e_end.clone();
-        (0..n).for_each(|_| {
+        let mut e_start = e_end;
+        for _ in 0..n {
             e_start.backward_char();
-        });
+        }
         ((b_end, b_start), (e_start, e_end))
     }
 }
@@ -278,10 +278,6 @@ impl Blocking for Block {
 
 impl Block {
     pub fn is_anonymous(&self) -> bool {
-        if let Block::Anonymous(_) = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, Block::Anonymous(_))
     }
 }

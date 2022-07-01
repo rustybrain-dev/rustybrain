@@ -68,9 +68,9 @@ impl EditingZettel {
 
         self.buffer.connect_changed(move |_| send!(s, Msg::Changed));
 
-        let s = sender.clone();
-        self.buffer
-            .connect_cursor_position_notify(move |_| send!(s, Msg::Cursor));
+        self.buffer.connect_cursor_position_notify(move |_| {
+            send!(sender, Msg::Cursor)
+        });
     }
 
     fn on_buffer_changed(&mut self) {
@@ -85,7 +85,7 @@ impl EditingZettel {
         self.buffer.apply_tag_by_name("p", &start, &end);
 
         let text = self.buffer.text(&start, &end, true);
-        if let Err(_) = self.zettel.borrow_mut().set_content(text.as_str()) {
+        if self.zettel.borrow_mut().set_content(text.as_str()).is_err() {
             return;
         };
 
@@ -144,7 +144,7 @@ impl EditingZettel {
             );
         }
         self.buffer.set_modified(false);
-        return true;
+        true
     }
 }
 
@@ -351,8 +351,7 @@ impl Widgets<Model, super::AppModel> for Editor {
 
         let action_bar = ActionBar::builder().build();
         let save_btn = gtk::Button::builder().label("Save").build();
-        let s = sender.clone();
-        save_btn.connect_clicked(move |_| send!(s, Msg::Save));
+        save_btn.connect_clicked(move |_| send!(sender, Msg::Save));
         action_bar.pack_end(&save_btn);
 
         Editor {
@@ -367,11 +366,8 @@ impl Widgets<Model, super::AppModel> for Editor {
     }
 
     fn view(&mut self, model: &Model, _sender: relm4::Sender<Msg>) {
-        loop {
-            match self.layout.last_child() {
-                Some(c) => self.layout.remove(&c),
-                None => break,
-            }
+        while let Some(c) = self.layout.last_child() {
+            self.layout.remove(&c);
         }
         if model.editing_title {
             self.layout.append(&self.title_in);

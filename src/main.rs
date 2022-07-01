@@ -1,11 +1,9 @@
 use std::{cell::RefCell, rc::Rc};
 
-use color_eyre;
-
 use rustybrain_core::config::ConfigLoader;
 use rustybrain_gtk::run;
 
-fn main() -> Result<(), String> {
+fn main() -> Result<(), anyhow::Error> {
     if std::env::var("RUST_LIB_BACKTRACE").is_err() {
         std::env::set_var("RUST_LIB_BACKTRACE", "1")
     }

@@ -78,7 +78,7 @@ impl Codeblock {
         buffer: &gtk::TextBuffer,
     ) -> Option<(TextIter, TextIter)> {
         let start = buffer.iter_at_mark(self.left());
-        let mut end = start.clone();
+        let mut end = start;
         end.forward_to_line_end();
 
         Some((start, end))
@@ -89,7 +89,7 @@ impl Codeblock {
         buffer: &gtk::TextBuffer,
     ) -> Option<(TextIter, TextIter)> {
         let end = buffer.iter_at_mark(self.right());
-        let mut start = end.clone();
+        let mut start = end;
         start.backward_line();
         start.forward_to_line_end();
         Some((start, end))

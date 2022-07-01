@@ -119,7 +119,7 @@ impl Model {
         s: &str,
     ) {
         self.zettels.clear();
-        match kasten.search_title(&s) {
+        match kasten.search_title(s) {
             Ok(set) => {
                 if set.is_empty() {
                     self.handle_init(kasten);
@@ -183,10 +183,9 @@ impl Widgets<Model, AppModel> for Search {
             send!(s, Msg::Changed(e.text().as_str().to_string()))
         });
         let key_ctrl = EventControllerKey::new();
-        let s = sender.clone();
         key_ctrl.connect_key_released(move |_, k, _, m| {
             if m == ModifierType::empty() && k == Key::Escape {
-                send!(s, Msg::Hide);
+                send!(sender, Msg::Hide);
             }
         });
         dialog.add_controller(&key_ctrl);
@@ -205,13 +204,10 @@ impl Widgets<Model, AppModel> for Search {
         } else {
             self.dialog.hide();
         }
-        loop {
-            match self.list_box.last_child() {
-                Some(c) => self.list_box.remove(&c),
-                None => break,
-            }
+        while let Some(c) = self.list_box.last_child() {
+            self.list_box.remove(&c);
         }
-        if model.searching != "" {
+        if !model.searching.is_empty() {
             self.list_box
                 .append(&self.new_list_row(model, sender.clone()));
         }

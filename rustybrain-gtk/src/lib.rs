@@ -65,7 +65,7 @@ impl Components<AppModel> for AppComponents {
             listview: RelmComponent::new(parent_model, parent_sender.clone()),
             backlinks: RelmComponent::new(parent_model, parent_sender.clone()),
             search: RelmComponent::new(parent_model, parent_sender.clone()),
-            msg: RelmComponent::new(parent_model, parent_sender.clone()),
+            msg: RelmComponent::new(parent_model, parent_sender),
         }
     }
 
@@ -139,7 +139,7 @@ impl AppUpdate for AppModel {
                         sender,
                         Msg::ShowMsg(
                             MessageType::Error,
-                            format!("Create note failed: {:?}!", e).to_string()
+                            format!("Create note failed: {:?}!", e)
                         )
                     ),
                 }
@@ -198,8 +198,7 @@ impl Widgets<AppModel, ()> for AppWidgets {
             Msg::Quit,
         ));
         window.add_controller(&shortcut_ctrl);
-        let s = sender.clone();
-        window.connect_show(move |_| send!(s, Msg::StartSearch));
+        window.connect_show(move |_| send!(sender, Msg::StartSearch));
 
         AppWidgets {
             window,
@@ -215,11 +214,8 @@ impl Widgets<AppModel, ()> for AppWidgets {
     }
 
     fn view(&mut self, model: &AppModel, _sender: relm4::Sender<Msg>) {
-        loop {
-            match self.main_layout.last_child() {
-                Some(c) => self.main_layout.remove(&c),
-                None => break,
-            }
+        while let Some(c) = self.main_layout.last_child() {
+            self.main_layout.remove(&c);
         }
         if model.show_list {
             self.main_layout.append(&self.left);
@@ -260,7 +256,7 @@ pub fn run(config: Rc<RefCell<Config>>) {
         show_list: false,
         show_back: true,
         config: config.clone(),
-        kasten: Rc::new(RefCell::new(Kasten::new(config.clone()).unwrap())),
+        kasten: Rc::new(RefCell::new(Kasten::new(config).unwrap())),
     };
     let app = RelmApp::new(model);
     app.run();
