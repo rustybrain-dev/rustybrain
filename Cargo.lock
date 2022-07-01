@@ -48,9 +48,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.53"
+version = "1.0.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94a45b455c14666b85fc40a019e8ab9eb75e3a124e05494f5397122bc9eb06e0"
+checksum = "bb07d2053ccdbe10e2af2995a2f116c1330396493dc1269f6a91d0ae82e19704"
 
 [[package]]
 name = "async-trait"
@@ -1301,11 +1301,12 @@ dependencies = [
 name = "rustybrain-core"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "chrono",
  "serde",
  "tantivy",
  "toml",
- "tree-sitter 0.20.8",
+ "tree-sitter",
  "tree-sitter-markdown",
 ]
 
@@ -1717,23 +1718,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "tree-sitter"
-version = "0.20.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "268bf3e3ca0c09e5d21b59c2638e12cb6dcf7ea2681250a696a2d0936cb57ba0"
-dependencies = [
- "cc",
- "regex",
-]
-
-[[package]]
 name = "tree-sitter-markdown"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c7c1cfe0396b0e500cc99067bcd2d48720eb08a077e2690194f0c3a3d105f9a0"
 dependencies = [
  "cc",
- "tree-sitter 0.19.5",
+ "tree-sitter",
 ]
 
 [[package]]

@@ -12,48 +12,12 @@ use std::{
 use chrono::Local;
 use tantivy::{
     collector::TopDocs,
-    query::{QueryParser, QueryParserError},
+    query::QueryParser,
     schema::{Field, Schema, Value, STORED, TEXT},
-    Document, Index, TantivyError,
+    Document, Index,
 };
 
-use crate::{
-    config::Config,
-    zettel::{Zettel, ZettelError},
-};
-
-#[derive(Debug)]
-pub enum KastenError {
-    ReadDirError(std::io::Error),
-    ZettelIOError(std::io::Error),
-    ZettelParseError(ZettelError),
-    IndexError(tantivy::TantivyError),
-    QueryError(QueryParserError),
-}
-
-impl From<std::io::Error> for KastenError {
-    fn from(err: std::io::Error) -> Self {
-        Self::ZettelIOError(err)
-    }
-}
-
-impl From<ZettelError> for KastenError {
-    fn from(err: ZettelError) -> Self {
-        Self::ZettelParseError(err)
-    }
-}
-
-impl From<TantivyError> for KastenError {
-    fn from(e: TantivyError) -> Self {
-        Self::IndexError(e)
-    }
-}
-
-impl From<QueryParserError> for KastenError {
-    fn from(e: QueryParserError) -> Self {
-        Self::QueryError(e)
-    }
-}
+use crate::{config::Config, zettel::Zettel};
 
 #[derive(Clone)]
 pub struct Kasten {
@@ -72,7 +36,7 @@ pub struct Kasten {
 }
 
 impl Kasten {
-    pub fn new(config: Rc<RefCell<Config>>) -> Result<Self, KastenError> {
+    pub fn new(config: Rc<RefCell<Config>>) -> Result<Self, anyhow::Error> {
         let mut schema_builder = Schema::builder();
         let title = schema_builder.add_text_field("title", TEXT | STORED);
         let path = schema_builder.add_text_field("path", TEXT | STORED);
@@ -95,7 +59,7 @@ impl Kasten {
         Ok(kasten)
     }
 
-    fn build(&mut self) -> Result<(), KastenError> {
+    fn build(&mut self) -> Result<(), anyhow::Error> {
         self.build_index()?;
         let mut zettels = vec![];
         let mut backlinks: HashMap<String, Vec<usize>> = HashMap::new();
@@ -115,7 +79,7 @@ impl Kasten {
         Ok(())
     }
 
-    fn build_index(&self) -> Result<(), KastenError> {
+    fn build_index(&self) -> Result<(), anyhow::Error> {
         {
             let mut index_writer = self.index.writer(50_000_000)?;
             index_writer.delete_all_documents()?;
@@ -129,7 +93,7 @@ impl Kasten {
         Ok(())
     }
 
-    fn add_doc(&self, z: &Zettel) -> Result<(), KastenError> {
+    fn add_doc(&self, z: &Zettel) -> Result<(), anyhow::Error> {
         let mut index_writer = self.index.writer(50_000_000)?;
         let title = self.title;
         let body = self.body;
@@ -139,7 +103,7 @@ impl Kasten {
         if let Some(p) = z.path().to_str() {
             doc.add_text(self.path, p);
         }
-        index_writer.add_document(doc);
+        index_writer.add_document(doc)?;
         index_writer.commit()?;
         Ok(())
     }
@@ -147,7 +111,7 @@ impl Kasten {
     pub fn search_title(
         &self,
         kw: &str,
-    ) -> Result<HashSet<String>, KastenError> {
+    ) -> Result<HashSet<String>, anyhow::Error> {
         let reader = self
             .index
             .reader_builder()
@@ -185,7 +149,7 @@ impl Kasten {
     pub fn create(
         &mut self,
         title: &str,
-    ) -> Result<Rc<RefCell<Zettel>>, KastenError> {
+    ) -> Result<Rc<RefCell<Zettel>>, anyhow::Error> {
         let path = self.new_path();
         if let Some(dir) = path.as_path().parent() {
             create_dir_all(dir)?;
@@ -197,7 +161,7 @@ impl Kasten {
         Ok(z)
     }
 
-    pub fn save(&mut self, zettel: &Zettel) -> Result<(), KastenError> {
+    pub fn save(&mut self, zettel: &Zettel) -> Result<(), anyhow::Error> {
         zettel.save()?;
         self.build()?;
         Ok(())
@@ -230,7 +194,7 @@ impl Kasten {
 }
 
 impl IntoIterator for Kasten {
-    type Item = Result<Zettel, KastenError>;
+    type Item = Result<Zettel, anyhow::Error>;
     type IntoIter = SyncDiskIter;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -248,7 +212,7 @@ pub struct SyncDiskIter {
 }
 
 impl Iterator for SyncDiskIter {
-    type Item = Result<Zettel, KastenError>;
+    type Item = Result<Zettel, anyhow::Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.inner.is_none() {
@@ -270,7 +234,7 @@ impl Iterator for SyncDiskIter {
 }
 
 impl SyncDiskIter {
-    fn scan_markdowns(&self) -> Result<Vec<DirEntry>, KastenError> {
+    fn scan_markdowns(&self) -> Result<Vec<DirEntry>, anyhow::Error> {
         let buf = Path::new(&self.repo_path);
         let mut dirs = vec![buf.to_path_buf()];
         let mut result = vec![];
@@ -310,7 +274,7 @@ impl SyncDiskIter {
     fn dir_entry_to_zettel(
         &self,
         entry: DirEntry,
-    ) -> Result<Zettel, KastenError> {
+    ) -> Result<Zettel, anyhow::Error> {
         let ze = Zettel::from_md(&self.repo_path, &entry.path())?;
         Ok(ze)
     }

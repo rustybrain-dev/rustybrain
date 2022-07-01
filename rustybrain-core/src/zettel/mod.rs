@@ -1,10 +1,8 @@
 use std::fs;
 use std::fs::rename;
 use std::fs::File;
-use std::io;
 use std::io::prelude::*;
 use std::io::Cursor;
-use std::path::StripPrefixError;
 use std::path::{Path, PathBuf};
 use std::slice::Iter;
 use std::str::FromStr;
@@ -15,55 +13,6 @@ use toml::value::Datetime;
 use tree_sitter::Node;
 use tree_sitter::Tree;
 use tree_sitter::TreeCursor;
-
-use crate::md::ParseError;
-
-#[derive(Debug)]
-pub enum ZettelError {
-    IOError(io::Error),
-    ParseHeaderError(toml::de::Error),
-    BuildHeaderError(std::fmt::Error),
-    DumpHeaderError(toml::ser::Error),
-    IdExtractError(StripPrefixError),
-    IdEmptyError,
-    TreeParseError(ParseError),
-}
-
-impl From<StripPrefixError> for ZettelError {
-    fn from(e: StripPrefixError) -> Self {
-        Self::IdExtractError(e)
-    }
-}
-
-impl From<io::Error> for ZettelError {
-    fn from(err: io::Error) -> Self {
-        Self::IOError(err)
-    }
-}
-
-impl From<toml::de::Error> for ZettelError {
-    fn from(e: toml::de::Error) -> Self {
-        Self::ParseHeaderError(e)
-    }
-}
-
-impl From<ParseError> for ZettelError {
-    fn from(e: ParseError) -> Self {
-        Self::TreeParseError(e)
-    }
-}
-
-impl From<toml::ser::Error> for ZettelError {
-    fn from(e: toml::ser::Error) -> Self {
-        Self::DumpHeaderError(e)
-    }
-}
-
-impl From<std::fmt::Error> for ZettelError {
-    fn from(err: std::fmt::Error) -> Self {
-        ZettelError::BuildHeaderError(err)
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Zettel {
@@ -100,13 +49,13 @@ impl ZettelHeader {
 
     pub fn from_cursor(
         cursor: &mut Cursor<Vec<u8>>,
-    ) -> Result<Self, ZettelError> {
+    ) -> Result<Self, anyhow::Error> {
         let raw = Self::read(cursor)?;
         let s = toml::from_str(&raw)?;
         Ok(s)
     }
 
-    fn read(cursor: &mut Cursor<Vec<u8>>) -> Result<String, ZettelError> {
+    fn read(cursor: &mut Cursor<Vec<u8>>) -> Result<String, anyhow::Error> {
         let mut line_buf: String = String::new();
         let mut header: String = String::new();
         cursor.read_line(&mut line_buf)?;
@@ -126,7 +75,10 @@ impl ZettelHeader {
 }
 
 impl Zettel {
-    pub fn from_md(repo_path: &str, path: &Path) -> Result<Self, ZettelError> {
+    pub fn from_md(
+        repo_path: &str,
+        path: &Path,
+    ) -> Result<Self, anyhow::Error> {
         let mut file = File::open(path)?;
         let mut buf = vec![];
         file.read_to_end(&mut buf)?;
@@ -152,19 +104,22 @@ impl Zettel {
         repo_path: &str,
         path: &Path,
         title: &str,
-    ) -> Result<Self, ZettelError> {
+    ) -> Result<Self, anyhow::Error> {
         Self::create_and_insert(path, title)?;
         Self::from_md(repo_path, path)
     }
 
-    fn create_and_insert(path: &Path, title: &str) -> Result<(), ZettelError> {
+    fn create_and_insert(
+        path: &Path,
+        title: &str,
+    ) -> Result<(), anyhow::Error> {
         let mut file = File::create(path)?;
         let header = ZettelHeader::new(title);
         Self::write_header(&mut file, &header)?;
         Ok(())
     }
 
-    pub fn save(&self) -> Result<(), ZettelError> {
+    pub fn save(&self) -> Result<(), anyhow::Error> {
         let tp = self.tmp();
         if tp.exists() {
             fs::remove_file(&tp)?;
@@ -179,7 +134,7 @@ impl Zettel {
     fn write_header(
         file: &mut File,
         header: &ZettelHeader,
-    ) -> Result<(), ZettelError> {
+    ) -> Result<(), anyhow::Error> {
         let hs = toml::to_string(&header)?;
         file.write(b"+++\n")?;
         file.write(hs.as_bytes())?;
@@ -210,7 +165,7 @@ impl Zettel {
 
     pub fn walk<F>(&self, on_node: F)
     where
-        F: Fn(&Node) -> (),
+        F: Fn(&Node),
     {
         if let Some(tree) = self.tree.as_ref() {
             let mut cursor = tree.walk();
@@ -235,12 +190,12 @@ impl Zettel {
     fn in_repo_path(
         path: &Path,
         repo_path: &str,
-    ) -> Result<String, ZettelError> {
+    ) -> Result<String, anyhow::Error> {
         let p = path.strip_prefix(repo_path)?;
         if let Some(p) = p.to_str() {
             return Ok(format!("@/{}", p));
         }
-        Err(ZettelError::IdEmptyError)
+        Err(anyhow::anyhow!("empty path"))
     }
 
     pub fn title(&self) -> &str {
@@ -255,7 +210,7 @@ impl Zettel {
         self.header.title = title.to_string();
     }
 
-    pub fn set_content(&mut self, content: &str) -> Result<(), ZettelError> {
+    pub fn set_content(&mut self, content: &str) -> Result<(), anyhow::Error> {
         self.tree = crate::md::parse(content, None)?;
         self.content = content.to_string();
         self.parse_links_to();

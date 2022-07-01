@@ -1,52 +1,10 @@
 use std::env::var;
-use std::fmt::Display;
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
-use std::string::FromUtf8Error;
+use std::str::from_utf8;
 
 use serde::Deserialize;
-
-#[derive(Debug)]
-pub enum ConfigError {
-    IOError(std::io::Error),
-    ParseError(toml::de::Error),
-    CodecError(FromUtf8Error),
-}
-
-impl From<io::Error> for ConfigError {
-    fn from(err: io::Error) -> Self {
-        ConfigError::IOError(err)
-    }
-}
-
-impl From<toml::de::Error> for ConfigError {
-    fn from(err: toml::de::Error) -> Self {
-        ConfigError::ParseError(err)
-    }
-}
-
-impl From<FromUtf8Error> for ConfigError {
-    fn from(err: FromUtf8Error) -> Self {
-        ConfigError::CodecError(err)
-    }
-}
-
-impl From<ConfigError> for String {
-    fn from(c: ConfigError) -> Self {
-        format!("{}", c)
-    }
-}
-
-impl Display for ConfigError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ConfigError::IOError(e) => e.fmt(f),
-            ConfigError::ParseError(e) => e.fmt(f),
-            ConfigError::CodecError(e) => e.fmt(f),
-        }
-    }
-}
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
@@ -62,17 +20,21 @@ pub struct Shortcut {
 }
 
 impl Config {
-    pub fn from_str(s: &str) -> Result<Self, ConfigError> {
-        let config = toml::from_str(s)?;
-        Ok(config)
-    }
-
     pub fn repo_path(&self) -> &str {
         &self.repo.path
     }
 
     pub fn shortcut(&self) -> &Shortcut {
         &self.shortcut
+    }
+}
+
+impl std::str::FromStr for Config {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let config = toml::from_str(s)?;
+        Ok(config)
     }
 }
 
@@ -90,6 +52,7 @@ impl Shortcut {
     }
 }
 
+#[derive(Default)]
 pub struct ConfigLoader {
     #[allow(dead_code)]
     home: PathBuf,
@@ -106,11 +69,10 @@ impl ConfigLoader {
         ConfigLoader { home, dir, path }
     }
 
-    pub fn load(&self) -> Result<Config, ConfigError> {
+    pub fn load(&self) -> Result<Config, anyhow::Error> {
         self.create_dir()?;
         self.attempt_set_default()?;
-        let content = self.load_config()?;
-        Config::from_str(&content)
+        self.load_config()
     }
 
     fn create_dir(&self) -> Result<(), io::Error> {
@@ -144,11 +106,12 @@ impl ConfigLoader {
         Ok(())
     }
 
-    fn load_config(&self) -> Result<String, ConfigError> {
+    fn load_config(&self) -> Result<Config, anyhow::Error> {
         let mut f = File::open(&self.path)?;
         let mut buf = vec![];
         f.read_to_end(&mut buf)?;
-        Ok(String::from_utf8(buf)?)
+        let s = from_utf8(&buf)?;
+        s.parse()
     }
 }
 
@@ -157,7 +120,7 @@ pub struct Repo {
     path: String,
 }
 
-const DEFAULT_CONFIG_CONTENT: &'static str = r###"
+const DEFAULT_CONFIG_CONTENT: &str = r###"
 [repo]
 path = "RustyBrain"
 
