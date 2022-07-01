@@ -173,7 +173,7 @@ impl Kasten {
         let gen = Local::now().format("%Y%m%d%H%M%S").to_string();
         Path::new(path)
             .join(format!("notes/{}.md", gen))
-            .to_path_buf()
+            
     }
 
     pub fn repo_path(&self) -> String {
@@ -184,7 +184,7 @@ impl Kasten {
         let mut r = vec![];
         if let Some(v) = self.backlinks.get(z.zid()) {
             for idx in v.iter() {
-                if let Some(z) = self.zettels.get(idx.clone()) {
+                if let Some(z) = self.zettels.get(*idx) {
                     r.push(z.clone());
                 }
             }

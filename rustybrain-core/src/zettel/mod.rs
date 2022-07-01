@@ -59,12 +59,12 @@ impl ZettelHeader {
         let mut line_buf: String = String::new();
         let mut header: String = String::new();
         cursor.read_line(&mut line_buf)?;
-        if line_buf.trim_start_matches("+").trim().len() == 0 {
+        if line_buf.trim_start_matches('+').trim().is_empty() {
             loop {
                 line_buf.clear();
-                cursor.read_line(&mut &mut line_buf)?;
+                cursor.read_line(&mut line_buf)?;
 
-                if line_buf.trim_start_matches("+").trim().len() == 0 {
+                if line_buf.trim_start_matches('+').trim().is_empty() {
                     return Ok(header);
                 }
                 std::fmt::Write::write_str(&mut header, &line_buf)?;
@@ -145,7 +145,7 @@ impl Zettel {
     fn tmp(&self) -> PathBuf {
         let dir = self.path.parent().unwrap();
         let f = self.path.file_name().unwrap().to_str().unwrap();
-        dir.join(format!(".{}", f)).to_path_buf()
+        dir.join(format!(".{}", f))
     }
 
     pub fn zid(&self) -> &str {
@@ -267,9 +267,7 @@ impl<'a> Iterator for WalkIter<'a> {
     type Item = Node<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.cursor.is_none() {
-            return None;
-        }
+        self.cursor.as_ref()?;
         let cursor = self.cursor.as_mut().unwrap();
         if let Some(node) = self.nodes_to_deep.pop() {
             cursor.reset(node);

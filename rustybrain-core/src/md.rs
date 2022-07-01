@@ -9,5 +9,5 @@ pub fn parse(
     let mut parser = tree_sitter::Parser::new();
     parser.set_language(tree_sitter_markdown::language())?;
     let tree = parser.parse(text, old_tree);
-    return Ok(tree);
+    Ok(tree)
 }
