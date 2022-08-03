@@ -15,4 +15,4 @@ color-eyre = "0.5.11"
 
 rustybrain-gtk = { path = "rustybrain-gtk" }
 rustybrain-core = { path = "rustybrain-core" }
-anyhow = "1.0.58"
+anyhow = "1.0.60"
