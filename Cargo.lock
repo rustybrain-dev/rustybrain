@@ -1305,7 +1305,7 @@ dependencies = [
  "serde",
  "tantivy",
  "toml",
- "tree-sitter",
+ "tree-sitter 0.20.9",
  "tree-sitter-markdown",
 ]
 
@@ -1718,13 +1718,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "tree-sitter"
+version = "0.20.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4423c784fe11398ca91e505cdc71356b07b1a924fc8735cfab5333afe3e18bc"
+dependencies = [
+ "cc",
+ "regex",
+]
+
+[[package]]
 name = "tree-sitter-markdown"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c7c1cfe0396b0e500cc99067bcd2d48720eb08a077e2690194f0c3a3d105f9a0"
 dependencies = [
  "cc",
- "tree-sitter",
+ "tree-sitter 0.19.5",
 ]
 
 [[package]]
