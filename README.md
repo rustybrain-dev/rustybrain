@@ -26,8 +26,4 @@ A Desktop Application that Implemented Zettelkasten to Help You Build Your Secon
 
 ## Install GTK+4
 
-### macOS
-
-``` shell
-brew install gtk+4
-```
+Check out the [Installation](https://gtk-rs.org/gtk4-rs/git/book/installation.html) section at the book of gtk4-rs.
