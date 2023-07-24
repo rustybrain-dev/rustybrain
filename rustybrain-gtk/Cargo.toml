@@ -14,4 +14,4 @@ rustybrain-core = { path = "../rustybrain-core" }
 gio = "0.18.0"
 
 [build-dependencies]
-glib-build-tools = { version = "0.17.10", features = ["gio"] }
+glib-build-tools = { version = "0.18.0", features = ["gio"] }
