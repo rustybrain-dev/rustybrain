@@ -3,7 +3,7 @@ edition = "2021"
 name = "rustybrain-core"
 version = "0.1.0"
 [dependencies]
-anyhow = "1.0.72"
+anyhow = "1.0.74"
 chrono = "0.4.26"
 serde = { version = "1.0", features = ["derive"] }
 tantivy = "0.20.2"
