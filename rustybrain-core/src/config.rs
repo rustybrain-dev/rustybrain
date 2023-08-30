@@ -117,7 +117,7 @@ pub struct Repo {
     path: String,
 }
 
-const DEFAULT_CONFIG_CONTENT: &str = r###"
+const DEFAULT_CONFIG_CONTENT: &str = r#"
 [repo]
 path = "RustyBrain"
 
@@ -126,7 +126,7 @@ find = "<Control><Shift>f"
 insert = "<Control>i"
 quit = "<Meta>q"
 
-"###;
+"#;
 
 #[cfg(test)]
 mod tests {
