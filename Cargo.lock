@@ -586,9 +586,9 @@ dependencies = [
 
 [[package]]
 name = "gio"
-version = "0.18.0"
+version = "0.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddfaf6c42dc395cd2fdfbbad662d6cb13a6279fe62582a127369ebbde55eeb23"
+checksum = "57052f84e8e5999b258e8adf8f5f2af0ac69033864936b8b6838321db2f759b1"
 dependencies = [
  "futures-channel",
  "futures-core",
@@ -678,7 +678,7 @@ version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3431c56f463443cba9bc3600248bc6d680cb614c2ee1cdd39dab5415bd12ac5c"
 dependencies = [
- "gio 0.18.0",
+ "gio 0.18.2",
 ]
 
 [[package]]
@@ -1459,7 +1459,7 @@ name = "rustybrain-gtk"
 version = "0.1.0"
 dependencies = [
  "gdk4",
- "gio 0.18.0",
+ "gio 0.18.2",
  "glib-build-tools",
  "gtk4",
  "relm4",
