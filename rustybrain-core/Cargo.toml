@@ -4,7 +4,7 @@ name = "rustybrain-core"
 version = "0.1.0"
 [dependencies]
 anyhow = "1.0.75"
-chrono = "0.4.30"
+chrono = "0.4.31"
 serde = { version = "1.0", features = ["derive"] }
 tantivy = "0.21.0"
 toml = "0.7"
